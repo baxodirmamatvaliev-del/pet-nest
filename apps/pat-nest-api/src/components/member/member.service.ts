@@ -96,6 +96,33 @@ export class MemberService {
     return targetMember;
   }
 
+  public async likeTargetMember(memberId: Types.ObjectId, likeRefId: Types.ObjectId): Promise<Member> {
+    const target = await this.memberModel
+      .findOne({ _id: likeRefId, memberStatus: MemberStatus.ACTIVE })
+      .exec();
+
+    if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+    const input = { memberId, likeRefId, likeGroup: LikeGroup.MEMBER };
+    const modifier = await this.likeService.toggleLike(input);
+
+    return await this.memberStatsEditor({
+      _id: likeRefId,
+      targetKey: 'memberLikes',
+      modifier,
+    });
+  }
+
+  public async memberStatsEditor(input: {_id: Types.ObjectId; targetKey: 'memberLikes';modifier: number;}): Promise<Member> {
+    const { _id, targetKey, modifier } = input;
+    const result = await this.memberModel
+      .findOneAndUpdate({ _id }, { $inc: { [targetKey]: modifier } }, { new: true })
+      .exec();
+
+    if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+    return result;
+  }
+
   private async checkSubscription(followerId: Types.ObjectId, followingId: Types.ObjectId): Promise<MeFollowed[]> {
     const result = await this.followModel.findOne({ followingId, followerId }).exec();
     return result ? [{ followerId, followingId, myFollowing: true }] : [];
