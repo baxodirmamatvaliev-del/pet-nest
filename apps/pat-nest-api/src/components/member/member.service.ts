@@ -2,10 +2,10 @@ import { BadRequestException, Injectable, InternalServerErrorException, Unauthor
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AuthService } from '../auth/auth.service';
-import { LoginInput, MemberInput } from '../../libs/dto/member/member.input';
-import { AuthPayload, Member } from '../../libs/dto/member/member';
-import { MemberStatus } from '../../libs/enums/member.enum';
-import { Message } from '../../libs/enums/common.enum';
+import { LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
+import { AuthPayload, Member, Members } from '../../libs/dto/member/member';
+import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
+import { Direction, Message } from '../../libs/enums/common.enum';
 import { MemberUpdateInput } from '../../libs/dto/member/member.update';
 import { ViewService } from '../view/view.service';
 import { LikeService } from '../like/like.service';
@@ -121,6 +121,37 @@ export class MemberService {
 
     if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
     return result;
+  }
+
+  public async getAllMembersByAdmin(input: MembersInquiry): Promise<Members> {
+    const { memberStatus, memberType, text } = input.search;
+    const match: { memberStatus?: MemberStatus; memberType?: MemberType; memberNick?: RegExp } = {};
+    const sort: Record<string, 1 | -1> = { // Eng yangi a’zolar birinchi. & (1) desak, eng kam like olgan birinchi chiqadi:Sami → Ali → Vali & (2) desak, eng ko‘p like olgan birinchi chiqadi:Vali → Ali → Sami
+      [input.sort ?? 'createdAt']: input.direction ?? Direction.DESC,
+      _id: input.direction ?? Direction.DESC,
+    };
+
+    if (memberStatus) match.memberStatus = memberStatus;
+    if (memberType) match.memberType = memberType;
+    if (text) match.memberNick = new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+    const result = await this.memberModel.aggregate<Members>([
+      { $match: match },
+      { $sort: sort },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+            { $project: { memberPassword: 0 } },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+    return result[0];
   }
 
   private async checkSubscription(followerId: Types.ObjectId, followingId: Types.ObjectId): Promise<MeFollowed[]> {

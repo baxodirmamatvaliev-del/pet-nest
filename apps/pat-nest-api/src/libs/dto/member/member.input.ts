@@ -1,5 +1,9 @@
-import { Field, InputType } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { Field, InputType, Int } from '@nestjs/graphql';
+import { Type } from 'class-transformer';
+import { IsDefined, IsEnum, IsIn, IsInt, IsNotEmpty, IsObject, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { MemberStatus, MemberType } from '../../enums/member.enum';
+import { Direction } from '../../enums/common.enum';
+import { availableMemberSorts } from '../../types/config';
 
 @InputType()
 export class MemberInput {
@@ -30,4 +34,54 @@ export class LoginInput {
   @IsString()
   @IsNotEmpty()
   memberPassword: string;
+}
+
+@InputType()
+export class MIsearch {
+  @Field(() => MemberStatus, { nullable: true })
+  @IsOptional()
+  @IsEnum(MemberStatus)
+  memberStatus?: MemberStatus;
+
+  @Field(() => MemberType, { nullable: true })
+  @IsOptional()
+  @IsEnum(MemberType)
+  memberType?: MemberType;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  text?: string;
+}
+
+@InputType()
+export class MembersInquiry {
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  page: number;
+
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit: number;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsIn(availableMemberSorts)
+  sort?: string;
+
+  @Field(() => Direction, { nullable: true })
+  @IsOptional()
+  @IsEnum(Direction)
+  direction?: Direction;
+
+  @Field(() => MIsearch)
+  @IsDefined()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MIsearch)
+  search: MIsearch;
 }

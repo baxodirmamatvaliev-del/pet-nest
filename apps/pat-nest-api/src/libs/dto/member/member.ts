@@ -96,3 +96,18 @@ export class AuthPayload {
   @Field(() => Member)
   member: Member;
 }
+
+@ObjectType()
+export class TotalCounter {
+  @Field(() => Int)
+  total: number;
+}
+
+@ObjectType()
+export class Members {
+  @Field(() => [Member])
+  list: Member[];
+
+  @Field(() => [TotalCounter])
+  metaCounter: TotalCounter[];
+}
