@@ -11,6 +11,7 @@ import { MemberType } from '../../libs/enums/member.enum';
 import { MemberUpdateInput } from '../../libs/dto/member/member.update';
 import { Types } from 'mongoose';
 import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { WithoutGuard } from '../auth/guards/without.guard';
 
 @Resolver(() => Member)
 export class MemberResolver {
@@ -53,5 +54,16 @@ export class MemberResolver {
     console.log('Mutation: updateMember');
     const targetId = shapeIntoMongoObjectId(memberId);
     return await this.memberService.updateMember(targetId, input);
+  }
+
+  @UseGuards(WithoutGuard)
+  @Query(() => Member)
+  public async getMember(
+    @Args('memberId') input: string,
+    @AuthMember('_id') memberId: Types.ObjectId | null,
+  ): Promise<Member> {
+    console.log('Query: getMember');
+    const targetId = shapeIntoMongoObjectId(input);
+    return await this.memberService.getMember(memberId, targetId);
   }
 }
