@@ -1,11 +1,12 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { AuthService } from '../auth/auth.service';
 import { LoginInput, MemberInput } from '../../libs/dto/member/member.input';
 import { AuthPayload, Member } from '../../libs/dto/member/member';
 import { MemberStatus } from '../../libs/enums/member.enum';
 import { Message } from '../../libs/enums/common.enum';
+import { MemberUpdateInput } from '../../libs/dto/member/member.update';
 
 @Injectable()
 export class MemberService {
@@ -40,5 +41,20 @@ export class MemberService {
       throw new UnauthorizedException('Invalid nickname or password');
     }
     return { accessToken: await this.authService.createToken(member), member };
+  }
+
+  public async updateMember(memberId: Types.ObjectId, input: MemberUpdateInput): Promise<Member> {
+    const result = await this.memberModel
+      .findOneAndUpdate(
+        { _id: memberId, memberStatus: MemberStatus.ACTIVE },
+        input,
+        { new: true, runValidators: true },
+      )
+      .exec();
+
+    if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+
+    result.accessToken = await this.authService.createToken(result);
+    return result;
   }
 }
