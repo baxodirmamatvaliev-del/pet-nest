@@ -1,10 +1,11 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AuthService } from '../auth/auth.service';
-import { LoginInput, SignupInput } from '../../libs/dto/member/member.input';
+import { LoginInput, MemberInput } from '../../libs/dto/member/member.input';
 import { AuthPayload, Member } from '../../libs/dto/member/member';
 import { MemberStatus } from '../../libs/enums/member.enum';
+import { Message } from '../../libs/enums/common.enum';
 
 @Injectable()
 export class MemberService {
@@ -13,17 +14,21 @@ export class MemberService {
     private readonly authService: AuthService,
   ) {}
 
-  async signup(input: SignupInput): Promise<AuthPayload> {
+  public async signup(input: MemberInput): Promise<Member> {
+    const hashedPassword = await this.authService.hashPassword(input.memberPassword);
+
     try {
       const member = await this.memberModel.create({
         memberNick: input.memberNick,
         memberPhone: input.memberPhone,
-        memberPassword: await this.authService.hashPassword(input.memberPassword),
+        memberPassword: hashedPassword,
       });
-      return { accessToken: await this.authService.createToken(member), member };
-    } catch (error) {
-      if (error?.code === 11000) throw new ConflictException('Nickname or phone already exists');
-      throw error;
+
+      member.accessToken = await this.authService.createToken(member);
+      return member;
+    } catch (err) {
+      console.log('Error! Service.model', err.message);
+      throw new BadRequestException(Message.USED_MEMBER_NICK_OR_PHONE);
     }
   }
 

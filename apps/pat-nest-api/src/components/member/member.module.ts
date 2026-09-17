@@ -7,8 +7,8 @@ import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
-  AuthModule,
-  MongooseModule.forFeature([{ name: 'Member', schema: MemberSchema,}])
+  MongooseModule.forFeature([{ name: 'Member', schema: MemberSchema,}]),
+     AuthModule,
   ],
   providers: [MemberResolver, MemberService],
   exports: [MemberService]
