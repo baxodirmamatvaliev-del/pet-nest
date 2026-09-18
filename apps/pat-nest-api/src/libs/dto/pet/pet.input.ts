@@ -1,7 +1,7 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import { IsArray, IsDefined, IsEnum, IsIn, IsInt, IsMongoId, IsNotEmpty, IsObject, IsOptional, IsString, Length, Max, Min, ValidateNested } from 'class-validator';
-import { PetGender, PetListingType, PetLocation, PetType } from '../../enums/pet.enum';
+import { PetGender, PetListingType, PetLocation, PetStatus, PetType } from '../../enums/pet.enum';
 import { Direction } from '../../enums/common.enum';
 import { availablePetSorts } from '../../types/config';
 
@@ -157,4 +157,43 @@ export class OrdinaryInquiry {
   @Min(1)
   @Max(100)
   limit: number;
+}
+
+@InputType()
+export class MyPetSearch {
+  @Field(() => PetStatus, { nullable: true })
+  @IsOptional()
+  @IsEnum(PetStatus)
+  petStatus?: PetStatus;
+}
+
+@InputType()
+export class MyPetsInquiry {
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  page: number;
+
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit: number;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsIn(availablePetSorts)
+  sort?: string;
+
+  @Field(() => Direction, { nullable: true })
+  @IsOptional()
+  @IsEnum(Direction)
+  direction?: Direction;
+
+  @Field(() => MyPetSearch)
+  @IsDefined()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MyPetSearch)
+  search: MyPetSearch;
 }

@@ -6,7 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { WithoutGuard } from '../auth/guards/without.guard';
 import { AuthGuard } from '../auth/guards/auth.guard';
-import { OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
+import { MyPetsInquiry, OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
 import { Pet, Pets } from '../../libs/dto/pet/pet';
 import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
 import { MemberType } from '../../libs/enums/member.enum';
@@ -81,5 +81,27 @@ export class PetResolver {
   ): Promise<Pets> {
     console.log('Query: getVisitedPets');
     return await this.petService.getVisitedPets(memberId, input);
+  }
+  //foydalanuvchining o‘z e’lonlarini status bo‘yicha filtrlab, sahifalab qaytaradi.
+  @Roles(MemberType.USER, MemberType.AGENT)
+  @UseGuards(RolesGuard)
+  @Query(() => Pets)
+  public async getMyPets(
+    @Args('input') input: MyPetsInquiry,
+    @AuthMember('_id') memberId: Types.ObjectId,
+  ): Promise<Pets> {
+    console.log('Query: getMyPets');
+    return await this.petService.getMyPets(memberId, input);
+  }
+ //ol e’longa like qo‘yadi yoki mavjud like’ni olib tashlaydi va petLikesni yangilaydi.
+  @UseGuards(AuthGuard)
+  @Mutation(() => Pet)
+  public async likeTargetPet(
+    @Args('petId') input: string,
+    @AuthMember('_id') memberId: Types.ObjectId,
+  ): Promise<Pet> {
+    console.log('Mutation: likeTargetPet');
+    const petId = shapeIntoMongoObjectId(input);
+    return await this.petService.likeTargetPet(memberId, petId);
   }
 }

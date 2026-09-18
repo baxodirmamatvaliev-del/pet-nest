@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { MemberService } from '../member/member.service';
 import { Pet, Pets } from '../../libs/dto/pet/pet';
-import { OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
+import { MyPetsInquiry, OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
 import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { PetListingType, PetStatus } from '../../libs/enums/pet.enum';
@@ -157,5 +157,59 @@ export class PetService {
 
   public async getVisitedPets(memberId: Types.ObjectId, input: OrdinaryInquiry): Promise<Pets> {
     return await this.viewService.getVisitedPets(memberId, input);
+  }
+
+  public async getMyPets(memberId: Types.ObjectId, input: MyPetsInquiry): Promise<Pets> {
+    const { petStatus } = input.search;
+    if (petStatus === PetStatus.DELETE) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+
+    const match = {
+      memberId,
+      petStatus: petStatus ?? { $ne: PetStatus.DELETE },
+    };
+    const sort: Record<string, 1 | -1> = {
+      [input.sort ?? 'createdAt']: input.direction ?? Direction.DESC,
+      _id: input.direction ?? Direction.DESC,
+    };
+
+    const result = await this.petModel.aggregate<Pets>([
+      { $match: match },
+      { $sort: sort },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+            lookupPetOwner,
+            { $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+    return result[0];
+  }
+
+  public async likeTargetPet(memberId: Types.ObjectId, petId: Types.ObjectId): Promise<Pet> {
+    const target = await this.petModel.findOne({ _id: petId, petStatus: PetStatus.ACTIVE }).exec();
+    if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+    const input = { memberId, likeRefId: petId, likeGroup: LikeGroup.PET };
+    const modifier = await this.likeService.toggleLike(input);
+    return await this.petStatsEditor({ _id: petId, targetKey: 'petLikes', modifier });
+  }
+
+  public async petStatsEditor(input: { _id: Types.ObjectId; targetKey: 'petLikes'; modifier: number }): Promise<Pet> {
+    const { _id, targetKey, modifier } = input;
+    const result = await this.petModel.findOneAndUpdate(
+      { _id, petStatus: PetStatus.ACTIVE },
+      { $inc: { [targetKey]: modifier } },
+      { returnDocument: 'after' },
+    ).exec();
+
+    if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+    return result;
   }
 }
