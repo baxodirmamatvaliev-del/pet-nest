@@ -12,10 +12,15 @@ import { MemberUpdateByAdminInput, MemberUpdateInput } from '../../libs/dto/memb
 import { Types } from 'mongoose';
 import { shapeIntoMongoObjectId } from '../../libs/types/config';
 import { WithoutGuard } from '../auth/guards/without.guard';
+import { GraphQLUpload } from 'graphql-upload';
+import { FileUpload, ImageUploadService } from './image-upload.service';
 
 @Resolver(() => Member)
 export class MemberResolver {
-  constructor(private readonly memberService: MemberService) {}
+  constructor(
+    private readonly memberService: MemberService,
+    private readonly imageUploadService: ImageUploadService,
+  ) {}
 
   @Mutation(() => Member)
   public async signup(@Args('input') input: MemberInput): Promise<Member> {
@@ -87,6 +92,7 @@ export class MemberResolver {
     return await this.memberService.getAllMembersByAdmin(input);
   }
 
+  // Authorization: ADMIN
   @Roles(MemberType.ADMIN)
   @UseGuards(RolesGuard)
   @Mutation(() => Member)
@@ -94,5 +100,16 @@ export class MemberResolver {
   (@Args('input') input: MemberUpdateByAdminInput): Promise<Member> {
     console.log('Mutation: updateMemberByAdmin');
     return await this.memberService.updateMemberByAdmin(input);
+  }
+
+  /** IMAGE UPLOADER **/
+  @UseGuards(AuthGuard)
+  @Mutation(() => String)
+  public async imageUploader(
+    @Args('file', { type: () => GraphQLUpload }) file: Promise<FileUpload>,
+    @Args('target') target: string,
+  ): Promise<string> {
+    console.log('Mutation: imageUploader');
+    return await this.imageUploadService.imageUploader(await file, target);
   }
 }
