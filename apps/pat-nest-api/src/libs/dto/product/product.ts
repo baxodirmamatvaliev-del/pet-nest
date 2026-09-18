@@ -1,6 +1,7 @@
 import { Field, Float, ID, Int, ObjectType } from '@nestjs/graphql';
 import type { Types } from 'mongoose';
 import { ProductCategory, ProductStatus, ProductType } from '../../enums/product.enum';
+import { TotalCounter } from '../member/member';
 
 @ObjectType()
 export class ProductVariant {
@@ -24,6 +25,9 @@ export class ProductVariant {
 export class Product {
   @Field(() => ID)
   _id: Types.ObjectId;
+
+  @Field(() => ID)
+  memberId: Types.ObjectId;
 
   @Field(() => ProductCategory)
   productCategory: ProductCategory;
@@ -60,4 +64,13 @@ export class Product {
 
   @Field()
   updatedAt: Date;
+}
+
+@ObjectType()
+export class Products {
+  @Field(() => [Product])
+  list: Product[];
+
+  @Field(() => [TotalCounter])
+  metaCounter: TotalCounter[];
 }

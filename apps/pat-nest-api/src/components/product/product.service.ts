@@ -1,18 +1,18 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Product } from '../../libs/dto/product/product';
-import { ProductInput } from '../../libs/dto/product/product.input';
-import { Message } from '../../libs/enums/common.enum';
+import { Product, Products } from '../../libs/dto/product/product';
+import { ProductInput, ProductsInquiry } from '../../libs/dto/product/product.input';
+import { Direction, Message } from '../../libs/enums/common.enum';
 import { ProductStatus } from '../../libs/enums/product.enum';
 
 @Injectable()
 export class ProductService {
   constructor(@InjectModel('Product') private readonly productModel: Model<Product>) {}
 
-  public async createProduct(input: ProductInput): Promise<Product> {
+  public async createProduct(memberId: Types.ObjectId, input: ProductInput): Promise<Product> {
     try {
-      return await this.productModel.create(input);
+      return await this.productModel.create({ ...input, memberId });
     } catch (err) {
       console.log('Error! ProductService.createProduct', err.message);
       throw new BadRequestException(Message.CREATE_FAILED);
@@ -27,5 +27,39 @@ export class ProductService {
 
     if (!result) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
     return result;
+  }
+
+  public async getProducts(input: ProductsInquiry): Promise<Products> {
+    const match: Record<string, unknown> = { productStatus: ProductStatus.ACTIVE };
+    const { categoryList, typeList, text } = input.search;
+
+    if (categoryList?.length) match.productCategory = { $in: categoryList };
+    if (typeList?.length) match.productType = { $in: typeList };
+    if (text) {
+      const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      match.productName = new RegExp(escaped, 'i');
+    }
+
+    const direction = input.direction ?? Direction.DESC;
+    const sort: Record<string, 1 | -1> = {
+      [input.sort ?? 'createdAt']: direction,
+      _id: direction,
+    };
+
+    const result = await this.productModel.aggregate<Products>([
+      { $match: match },
+      { $sort: sort },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    return result[0];
   }
 }

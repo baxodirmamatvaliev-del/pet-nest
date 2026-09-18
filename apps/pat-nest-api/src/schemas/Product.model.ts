@@ -36,6 +36,13 @@ const ProductVariantSchema = new Schema(
 
 const ProductSchema = new Schema(
     {
+        memberId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Member',
+            required: true,
+            index: true,
+        },
+
         productCategory: {
             type: String,
             enum: ProductCategory,
