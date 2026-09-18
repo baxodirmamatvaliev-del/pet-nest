@@ -114,7 +114,7 @@ export class MemberService {
     });
   }
 
-  public async memberStatsEditor(input: {_id: Types.ObjectId; targetKey: 'memberLikes';modifier: number;}): Promise<Member> {
+  public async memberStatsEditor(input: {_id: Types.ObjectId; targetKey: 'memberLikes' | 'memberPets';modifier: number;}): Promise<Member> {
     const { _id, targetKey, modifier } = input;
     const result = await this.memberModel
       .findOneAndUpdate({ _id }, { $inc: { [targetKey]: modifier } }, { new: true })

@@ -1,10 +1,13 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import type { Types } from 'mongoose';
 import { PetGender, PetListingType, PetLocation, PetStatus, PetType } from '../../enums/pet.enum';
+import { Member } from '../member/member';
+import { MeLiked } from '../like/like';
 
 @ObjectType()
 export class Pet {
   @Field(() => ID)
-  _id: string;
+  _id: Types.ObjectId;
 
   @Field(() => PetType)
   petType: PetType;
@@ -55,7 +58,7 @@ export class Pet {
   petRank: number;
 
   @Field(() => ID)
-  memberId: string;
+  memberId: Types.ObjectId;
 
   @Field({ nullable: true })
   completedAt?: Date;
@@ -68,4 +71,10 @@ export class Pet {
 
   @Field()
   updatedAt: Date;
+
+  @Field(() => [MeLiked], { nullable: true })
+  meLiked?: MeLiked[];
+
+  @Field(() => Member, { nullable: true })
+  memberData?: Member;
 }
