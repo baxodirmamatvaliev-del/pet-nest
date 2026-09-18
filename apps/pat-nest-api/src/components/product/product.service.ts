@@ -167,4 +167,31 @@ export class ProductService {
 
     return result[0];
   }
+
+  public async updateProductByAdmin(input: ProductUpdateInput): Promise<Product> {
+    const { _id, ...changes } = input;
+    const productId = shapeIntoMongoObjectId(_id);
+    const update: Record<string, unknown> = { $set: changes };
+
+    if (changes.productStatus === ProductStatus.DELETE) {
+      update.$set = { ...changes, deletedAt: new Date() };
+    } else if (changes.productStatus === ProductStatus.ACTIVE || changes.productStatus === ProductStatus.HIDDEN) {
+      update.$unset = { deletedAt: 1 };
+    }
+
+    try {
+      const result = await this.productModel.findByIdAndUpdate(
+        productId,
+        update,
+        { returnDocument: 'after', runValidators: true },
+      ).exec();
+
+      if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+      return result;
+    } catch (err) {
+      if (err instanceof InternalServerErrorException) throw err;
+      console.log('Error! ProductService.updateProductByAdmin', err.message);
+      throw new BadRequestException(Message.UPDATE_FAILED);
+    }
+  }
 }

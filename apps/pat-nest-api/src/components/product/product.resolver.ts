@@ -84,4 +84,13 @@ export class ProductResolver {
     console.log('Query: getAllProductsByAdmin');
     return await this.productService.getAllProductsByAdmin(input);
   }
+
+  // ADMIN istalgan egasining mahsulotini tahrirlay oladi, holatini ACTIVE, HIDDEN yoki DELETEga o‘zgartira oladi.
+  @Roles(MemberType.ADMIN)
+  @UseGuards(RolesGuard)
+  @Mutation(() => Product)
+  public async updateProductByAdmin(@Args('input') input: ProductUpdateInput): Promise<Product> {
+    console.log('Mutation: updateProductByAdmin');
+    return await this.productService.updateProductByAdmin(input);
+  }
 }
