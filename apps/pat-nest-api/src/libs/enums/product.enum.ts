@@ -19,5 +19,6 @@ registerEnumType(ProductType, { name: 'ProductType' });
 export enum ProductStatus {
   ACTIVE = 'ACTIVE',
   HIDDEN = 'HIDDEN',
+  DELETE = 'DELETE',
 }
 registerEnumType(ProductStatus, { name: 'ProductStatus' });

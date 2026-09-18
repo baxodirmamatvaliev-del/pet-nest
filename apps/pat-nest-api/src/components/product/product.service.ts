@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, InternalServerErrorException } from '@
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Product, Products } from '../../libs/dto/product/product';
-import { MyProductsInquiry, ProductInput, ProductsInquiry } from '../../libs/dto/product/product.input';
+import { AdminProductsInquiry, MyProductsInquiry, ProductInput, ProductsInquiry } from '../../libs/dto/product/product.input';
 import { ProductUpdateInput } from '../../libs/dto/product/product.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { ProductStatus } from '../../libs/enums/product.enum';
@@ -66,7 +66,14 @@ export class ProductService {
   }
 
   public async getMyProducts(memberId: Types.ObjectId, input: MyProductsInquiry): Promise<Products> {
-    const match: Record<string, unknown> = { memberId };
+    if (input.search.productStatus === ProductStatus.DELETE) {
+      throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+    }
+
+    const match: Record<string, unknown> = {
+      memberId,
+      productStatus: { $ne: ProductStatus.DELETE },
+    };
     if (input.search.productStatus) match.productStatus = input.search.productStatus;
 
     const direction = input.direction ?? Direction.DESC;
@@ -95,10 +102,13 @@ export class ProductService {
   public async updateProduct(memberId: Types.ObjectId, input: ProductUpdateInput): Promise<Product> {
     const { _id, ...changes } = input;
     const productId = shapeIntoMongoObjectId(_id);
+    if (changes.productStatus === ProductStatus.DELETE) {
+      throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+    }
 
     try {
       const result = await this.productModel.findOneAndUpdate(
-        { _id: productId, memberId },
+        { _id: productId, memberId, productStatus: { $ne: ProductStatus.DELETE } },
         { $set: changes },
         { returnDocument: 'after', runValidators: true },
       ).exec();
@@ -110,5 +120,51 @@ export class ProductService {
       console.log('Error! ProductService.updateProduct', err.message);
       throw new BadRequestException(Message.UPDATE_FAILED);
     }
+  }
+
+  public async removeProduct(memberId: Types.ObjectId, productId: Types.ObjectId): Promise<Product> {
+    const result = await this.productModel.findOneAndUpdate(
+      { _id: productId, memberId, productStatus: { $ne: ProductStatus.DELETE } },
+      { $set: { productStatus: ProductStatus.DELETE, deletedAt: new Date() } },
+      { returnDocument: 'after' },
+    ).exec();
+
+    if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
+    return result;
+  }
+
+  public async getAllProductsByAdmin(input: AdminProductsInquiry): Promise<Products> {
+    const match: Record<string, unknown> = {};
+    const { productStatus, categoryList, typeList, text } = input.search;
+
+    if (productStatus) match.productStatus = productStatus;
+    if (categoryList?.length) match.productCategory = { $in: categoryList };
+    if (typeList?.length) match.productType = { $in: typeList };
+    if (text) {
+      const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      match.productName = new RegExp(escaped, 'i');
+    }
+
+    const direction = input.direction ?? Direction.DESC;
+    const sort: Record<string, 1 | -1> = {
+      [input.sort ?? 'createdAt']: direction,
+      _id: direction,
+    };
+
+    const result = await this.productModel.aggregate<Products>([
+      { $match: match },
+      { $sort: sort },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    return result[0];
   }
 }

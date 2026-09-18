@@ -1,7 +1,7 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Product, Products } from '../../libs/dto/product/product';
-import { MyProductsInquiry, ProductInput, ProductsInquiry } from '../../libs/dto/product/product.input';
+import { AdminProductsInquiry, MyProductsInquiry, ProductInput, ProductsInquiry } from '../../libs/dto/product/product.input';
 import { ProductUpdateInput } from '../../libs/dto/product/product.update';
 import { MemberType } from '../../libs/enums/member.enum';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
@@ -62,5 +62,26 @@ export class ProductResolver {
   ): Promise<Product> {
     console.log('Mutation: updateProduct');
     return await this.productService.updateProduct(memberId, input);
+  }
+ 
+  //AGENT yoki ADMIN faqat o‘zi yaratgan mahsulotni olib tashlaydi. Yozuv bazada DELETE holatida saqlanadi va katalogda ko‘rinmaydi.
+  @Roles(MemberType.ADMIN, MemberType.AGENT)
+  @UseGuards(RolesGuard)
+  @Mutation(() => Product)
+  public async removeProduct(
+    @Args('productId') input: string,
+    @AuthMember('_id') memberId: Types.ObjectId,
+  ): Promise<Product> {
+    console.log('Mutation: removeProduct');
+    const productId = shapeIntoMongoObjectId(input);
+    return await this.productService.removeProduct(memberId, productId);
+  }
+  // (ADMIN NAZORAT) ADMIN barcha holatdagi mahsulotlarni, jumladan o‘chirilganlarini ham, filtr va sahifalash bilan ko‘radi.
+  @Roles(MemberType.ADMIN)
+  @UseGuards(RolesGuard)
+  @Query(() => Products)
+  public async getAllProductsByAdmin(@Args('input') input: AdminProductsInquiry): Promise<Products> {
+    console.log('Query: getAllProductsByAdmin');
+    return await this.productService.getAllProductsByAdmin(input);
   }
 }

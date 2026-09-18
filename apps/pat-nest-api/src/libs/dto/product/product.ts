@@ -59,6 +59,9 @@ export class Product {
   @Field(() => Int)
   productSold: number;
 
+  @Field({ nullable: true })
+  deletedAt?: Date;
+
   @Field()
   createdAt: Date;
 

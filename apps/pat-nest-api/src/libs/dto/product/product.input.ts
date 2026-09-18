@@ -158,3 +158,42 @@ export class MyProductsInquiry {
   @Type(() => MyProductSearch)
   search: MyProductSearch;
 }
+
+@InputType()
+export class AdminProductSearch extends ProductSearch {
+  @Field(() => ProductStatus, { nullable: true })
+  @IsOptional()
+  @IsEnum(ProductStatus)
+  productStatus?: ProductStatus;
+}
+
+@InputType()
+export class AdminProductsInquiry {
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  page: number;
+
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit: number;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsIn(availableProductSorts)
+  sort?: string;
+
+  @Field(() => Direction, { nullable: true })
+  @IsOptional()
+  @IsEnum(Direction)
+  direction?: Direction;
+
+  @Field(() => AdminProductSearch)
+  @IsDefined()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AdminProductSearch)
+  search: AdminProductSearch;
+}
