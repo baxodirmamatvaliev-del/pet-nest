@@ -1,8 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Like, MeLiked } from '../../libs/dto/like/like';
 import { Message } from '../../libs/enums/common.enum';
+import { OrdinaryInquiry } from '../../libs/dto/pet/pet.input';
+import { Pets } from '../../libs/dto/pet/pet';
+import { LikeGroup } from '../../libs/enums/like.enum';
+import { PetStatus } from '../../libs/enums/pet.enum';
+import { lookupAuthMemberLiked, lookupPetOwner } from '../../libs/types/config';
 
 @Injectable()
 export class LikeService {
@@ -30,5 +35,30 @@ export class LikeService {
     if (!result) return [];
 
     return [{ memberId: input.memberId, likeRefId: input.likeRefId, myFavorite: true }];
+  }
+
+  public async getFavoritePets(memberId: Types.ObjectId, input: OrdinaryInquiry): Promise<Pets> {
+    const result = await this.likeModel.aggregate<Pets>([
+      { $match: { memberId, likeGroup: LikeGroup.PET } },
+      { $sort: { updatedAt: -1 as const, _id: -1 as const } },
+      { $lookup: { from: 'pets', localField: 'likeRefId', foreignField: '_id', as: 'pet' } },
+      { $unwind: '$pet' },
+      { $match: { 'pet.petStatus': PetStatus.ACTIVE } },
+      { $replaceRoot: { newRoot: '$pet' } },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+            lookupAuthMemberLiked(memberId, '$_id', LikeGroup.PET),
+            lookupPetOwner,
+            { $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    return result[0] ?? { list: [], metaCounter: [] };
   }
 }

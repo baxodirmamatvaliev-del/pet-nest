@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { MemberService } from '../member/member.service';
 import { Pet, Pets } from '../../libs/dto/pet/pet';
-import { PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
+import { OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
 import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { PetListingType, PetStatus } from '../../libs/enums/pet.enum';
@@ -149,5 +149,13 @@ export class PetService {
 
     if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
     return result[0];
+  }
+
+  public async getFavoritePets(memberId: Types.ObjectId, input: OrdinaryInquiry): Promise<Pets> {
+    return await this.likeService.getFavoritePets(memberId, input);
+  }
+
+  public async getVisitedPets(memberId: Types.ObjectId, input: OrdinaryInquiry): Promise<Pets> {
+    return await this.viewService.getVisitedPets(memberId, input);
   }
 }

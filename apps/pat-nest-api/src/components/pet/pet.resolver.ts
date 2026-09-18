@@ -5,7 +5,8 @@ import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { WithoutGuard } from '../auth/guards/without.guard';
-import { PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
 import { Pet, Pets } from '../../libs/dto/pet/pet';
 import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
 import { MemberType } from '../../libs/enums/member.enum';
@@ -59,5 +60,26 @@ export class PetResolver {
   ): Promise<Pets> {
     console.log('Query: getPets');
     return await this.petService.getPets(memberId, input);
+  }
+
+  //foydalanuvchi yoqtirgan faol Pet e’lonlarini qaytaradi.
+  @UseGuards(AuthGuard)
+  @Query(() => Pets)
+  public async getFavoritePets(
+    @Args('input') input: OrdinaryInquiry,
+    @AuthMember('_id') memberId: Types.ObjectId,
+  ): Promise<Pets> {
+    console.log('Query: getFavoritePets');
+    return await this.petService.getFavoritePets(memberId, input);
+  }
+  //foydalanuvchi ko‘rgan faol Pet e’lonlarini qaytaradi.
+  @UseGuards(AuthGuard)
+  @Query(() => Pets)
+  public async getVisitedPets(
+    @Args('input') input: OrdinaryInquiry,
+    @AuthMember('_id') memberId: Types.ObjectId,
+  ): Promise<Pets> {
+    console.log('Query: getVisitedPets');
+    return await this.petService.getVisitedPets(memberId, input);
   }
 }

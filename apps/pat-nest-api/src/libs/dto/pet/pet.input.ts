@@ -144,3 +144,17 @@ export class PetsInquiry {
   @Type(() => PetSearch)
   search: PetSearch;
 }
+
+@InputType()
+export class OrdinaryInquiry {
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  page: number;
+
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit: number;
+}
