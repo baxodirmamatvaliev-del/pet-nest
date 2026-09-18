@@ -252,4 +252,14 @@ export class PetService {
 
     return await this.updatePet(target.memberId, input);
   }
+
+  public async removePetByAdmin(petId: Types.ObjectId): Promise<Pet> {
+    const result = await this.petModel.findOneAndDelete({
+      _id: petId,
+      petStatus: PetStatus.DELETE,
+    }).exec();
+
+    if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
+    return result;
+  }
 }

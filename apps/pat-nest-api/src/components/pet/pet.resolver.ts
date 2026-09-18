@@ -124,4 +124,14 @@ export class PetResolver {
     console.log('Mutation: updatePetByAdmin');
     return await this.petService.updatePetByAdmin(input);
   }
+
+  // Stratus DELETE bolgan elon larni remove qiladi
+  @Roles(MemberType.ADMIN)
+  @UseGuards(RolesGuard)
+  @Mutation(() => Pet)
+  public async removePetByAdmin(@Args('petId') input: string): Promise<Pet> {
+    console.log('Mutation: removePetByAdmin');
+    const petId = shapeIntoMongoObjectId(input);
+    return await this.petService.removePetByAdmin(petId);
+  }
 }
