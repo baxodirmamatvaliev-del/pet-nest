@@ -43,4 +43,23 @@ export class ImageUploadService {
       throw new InternalServerErrorException(Message.UPLOAD_FAILED);
     }
   }
+
+  public async imagesUploader(files: Promise<FileUpload>[], target: string): Promise<string[]> {
+    if (!files.length || files.length > 10) {
+      throw new BadRequestException(Message.BAD_REQUEST);
+    }
+
+    const uploadedImages: string[] = [];
+    try {
+      for (const file of files) {
+        uploadedImages.push(await this.imageUploader(await file, target));
+      }
+      return uploadedImages;
+    } catch (err) {
+      await Promise.all(
+        uploadedImages.map((url) => fs.unlink(join(process.cwd(), url)).catch(() => undefined)),
+      );
+      throw err;
+    }
+  }
 }

@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import { IsDefined, IsEnum, IsIn, IsInt, IsNotEmpty, IsObject, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { MemberStatus, MemberType } from '../../enums/member.enum';
 import { Direction } from '../../enums/common.enum';
-import { availableMemberSorts } from '../../types/config';
+import { availableAgentsSorts, availableMemberSorts } from '../../types/config';
 
 @InputType()
 export class MemberInput {
@@ -84,4 +84,44 @@ export class MembersInquiry {
   @ValidateNested()
   @Type(() => MIsearch)
   search: MIsearch;
+}
+
+@InputType()
+export class AIsearch {
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  text?: string;
+}
+
+@InputType()
+export class AgentsInquiry {
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  page: number;
+
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit: number;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsIn(availableAgentsSorts)
+  sort?: string;
+
+  @Field(() => Direction, { nullable: true })
+  @IsOptional()
+  @IsEnum(Direction)
+  direction?: Direction;
+
+  @Field(() => AIsearch)
+  @IsDefined()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AIsearch)
+  search: AIsearch;
 }

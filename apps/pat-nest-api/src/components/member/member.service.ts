@@ -2,12 +2,12 @@ import { BadRequestException, Injectable, InternalServerErrorException, Unauthor
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AuthService } from '../auth/auth.service';
-import { LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
+import { AgentsInquiry, LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
 import { AuthPayload, Member, Members } from '../../libs/dto/member/member';
 import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { MemberUpdateByAdminInput, MemberUpdateInput } from '../../libs/dto/member/member.update';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { lookupAuthMemberLiked, shapeIntoMongoObjectId } from '../../libs/types/config';
 import { ViewService } from '../view/view.service';
 import { LikeService } from '../like/like.service';
 import { ViewGroup } from '../../libs/enums/view.enum';
@@ -122,6 +122,41 @@ export class MemberService {
 
     if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
     return result;
+  }
+
+  public async getAgents(memberId: Types.ObjectId | null, input: AgentsInquiry): Promise<Members> {
+    const match: { memberType: MemberType; memberStatus: MemberStatus; memberNick?: RegExp } = {
+      memberType: MemberType.AGENT,
+      memberStatus: MemberStatus.ACTIVE,
+    };
+    const sort: Record<string, 1 | -1> = {
+      [input.sort ?? 'createdAt']: input.direction ?? Direction.DESC,
+      _id: input.direction ?? Direction.DESC,
+    };
+
+    if (input.search.text) {
+      const text = input.search.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      match.memberNick = new RegExp(text, 'i');
+    }
+
+    const result = await this.memberModel.aggregate<Members>([
+      { $match: match },
+      { $sort: sort },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+            lookupAuthMemberLiked(memberId, '$_id', LikeGroup.MEMBER),
+            { $project: { memberPassword: 0 } },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+    return result[0];
   }
 
   public async getAllMembersByAdmin(input: MembersInquiry): Promise<Members> {
