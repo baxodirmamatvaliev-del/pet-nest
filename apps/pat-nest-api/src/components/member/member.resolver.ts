@@ -8,7 +8,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { MemberType } from '../../libs/enums/member.enum';
-import { MemberUpdateInput } from '../../libs/dto/member/member.update';
+import { MemberUpdateByAdminInput, MemberUpdateInput } from '../../libs/dto/member/member.update';
 import { Types } from 'mongoose';
 import { shapeIntoMongoObjectId } from '../../libs/types/config';
 import { WithoutGuard } from '../auth/guards/without.guard';
@@ -85,5 +85,14 @@ export class MemberResolver {
   input: MembersInquiry): Promise<Members> {
     console.log('Query: getAllMembersByAdmin');
     return await this.memberService.getAllMembersByAdmin(input);
+  }
+
+  @Roles(MemberType.ADMIN)
+  @UseGuards(RolesGuard)
+  @Mutation(() => Member)
+  public async updateMemberByAdmin
+  (@Args('input') input: MemberUpdateByAdminInput): Promise<Member> {
+    console.log('Mutation: updateMemberByAdmin');
+    return await this.memberService.updateMemberByAdmin(input);
   }
 }

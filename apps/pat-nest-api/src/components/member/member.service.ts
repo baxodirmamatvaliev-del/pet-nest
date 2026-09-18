@@ -6,7 +6,8 @@ import { LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/m
 import { AuthPayload, Member, Members } from '../../libs/dto/member/member';
 import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
 import { Direction, Message } from '../../libs/enums/common.enum';
-import { MemberUpdateInput } from '../../libs/dto/member/member.update';
+import { MemberUpdateByAdminInput, MemberUpdateInput } from '../../libs/dto/member/member.update';
+import { shapeIntoMongoObjectId } from '../../libs/types/config';
 import { ViewService } from '../view/view.service';
 import { LikeService } from '../like/like.service';
 import { ViewGroup } from '../../libs/enums/view.enum';
@@ -152,6 +153,28 @@ export class MemberService {
 
     if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
     return result[0];
+  }
+
+  public async updateMemberByAdmin(input: MemberUpdateByAdminInput): Promise<Member> {
+    const { _id, ...changes } = input;
+    const memberId = shapeIntoMongoObjectId(_id);
+
+    if (changes.memberPassword !== undefined) {
+      changes.memberPassword = await this.authService.hashPassword(changes.memberPassword);
+    }
+
+    try {
+      const result = await this.memberModel
+        .findOneAndUpdate({ _id: memberId }, changes, { new: true, runValidators: true })
+        .exec();
+
+      if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+      return result;
+    } catch (err) {
+      console.log('Error! MemberService.updateMemberByAdmin', err.message);
+      if (err.code === 11000) throw new BadRequestException(Message.USED_MEMBER_NICK_OR_PHONE);
+      throw err;
+    }
   }
 
   private async checkSubscription(followerId: Types.ObjectId, followingId: Types.ObjectId): Promise<MeFollowed[]> {
