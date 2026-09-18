@@ -2,14 +2,16 @@ import { BadRequestException, Injectable, InternalServerErrorException } from '@
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { MemberService } from '../member/member.service';
-import { Pet } from '../../libs/dto/pet/pet';
-import { PetInput } from '../../libs/dto/pet/pet.input';
-import { Message } from '../../libs/enums/common.enum';
-import { PetStatus } from '../../libs/enums/pet.enum';
+import { Pet, Pets } from '../../libs/dto/pet/pet';
+import { PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
+import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
+import { Direction, Message } from '../../libs/enums/common.enum';
+import { PetListingType, PetStatus } from '../../libs/enums/pet.enum';
 import { ViewService } from '../view/view.service';
 import { LikeService } from '../like/like.service';
 import { ViewGroup } from '../../libs/enums/view.enum';
 import { LikeGroup } from '../../libs/enums/like.enum';
+import { lookupAuthMemberLiked, lookupPetOwner, shapeIntoMongoObjectId } from '../../libs/types/config';
 
 @Injectable()
 export class PetService {
@@ -57,5 +59,95 @@ export class PetService {
 
     targetPet.memberData = await this.memberService.getMember(null, targetPet.memberId);
     return targetPet;
+  }
+
+  public async updatePet(memberId: Types.ObjectId, input: PetUpdateInput): Promise<Pet> {
+    const { _id, ...changes } = input;
+    const petId = shapeIntoMongoObjectId(_id);
+    const current = await this.petModel.findOne({
+      _id: petId,
+      memberId,
+      petStatus: { $in: [PetStatus.ACTIVE, PetStatus.RESERVED] },
+    }).exec();
+    if (!current) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+
+    const listingType = changes.petListingType ?? current.petListingType;
+    const price = changes.petPrice ?? current.petPrice;
+    if (listingType === PetListingType.SALE && price <= 0) {
+      throw new BadRequestException(Message.BAD_REQUEST);
+    }
+    if (changes.petStatus === PetStatus.SOLD && listingType !== PetListingType.SALE) {
+      throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+    }
+    if (changes.petStatus === PetStatus.ADOPTED && listingType !== PetListingType.ADOPTION) {
+      throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+    }
+
+    const finished = changes.petStatus === PetStatus.SOLD || changes.petStatus === PetStatus.ADOPTED;
+    if (finished) Object.assign(changes, { completedAt: new Date() });
+    if (changes.petStatus === PetStatus.DELETE) Object.assign(changes, { deletedAt: new Date() });
+
+    const result = await this.petModel.findOneAndUpdate(
+      { _id: petId, memberId, petStatus: current.petStatus },
+      changes,
+      { returnDocument: 'after', runValidators: true },
+    ).exec();
+    if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+
+    if (finished || changes.petStatus === PetStatus.DELETE) {
+      await this.memberService.memberStatsEditor({
+        _id: memberId,
+        targetKey: 'memberPets',
+        modifier: -1,
+      });
+    }
+    return result;
+  }
+
+  public async getPets(memberId: Types.ObjectId | null, input: PetsInquiry): Promise<Pets> {
+    const match: Record<string, unknown> = { petStatus: PetStatus.ACTIVE };
+    const sort: Record<string, 1 | -1> = {
+      [input.sort ?? 'createdAt']: input.direction ?? Direction.DESC,
+      _id: input.direction ?? Direction.DESC,
+    };
+    const { search } = input;
+
+    if (search.memberId) match.memberId = shapeIntoMongoObjectId(search.memberId);
+    if (search.typeList?.length) match.petType = { $in: search.typeList };
+    if (search.locationList?.length) match.petLocation = { $in: search.locationList };
+    if (search.listingTypeList?.length) match.petListingType = { $in: search.listingTypeList };
+    if (search.pricesRange) {
+      const { start, end } = search.pricesRange;
+      if (start > end) throw new BadRequestException(Message.BAD_REQUEST);
+      match.petPrice = { $gte: start, $lte: end };
+    }
+    if (search.text) {
+      const text = search.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      match.$or = [
+        { petTitle: new RegExp(text, 'i') },
+        { petName: new RegExp(text, 'i') },
+        { petBreed: new RegExp(text, 'i') },
+      ];
+    }
+
+    const result = await this.petModel.aggregate<Pets>([
+      { $match: match },
+      { $sort: sort },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+            lookupAuthMemberLiked(memberId, '$_id', LikeGroup.PET),
+            lookupPetOwner,
+            { $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+    return result[0];
   }
 }

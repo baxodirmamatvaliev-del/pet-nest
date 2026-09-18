@@ -4,6 +4,7 @@ import { LikeGroup } from '../enums/like.enum';
 
 export const availableMemberSorts = ['createdAt', 'updatedAt', 'memberLikes', 'memberViews'];
 export const availableAgentsSorts = ['createdAt', 'updatedAt', 'memberLikes', 'memberViews', 'memberRank'];
+export const availablePetSorts = ['createdAt', 'updatedAt', 'petPrice', 'petLikes', 'petViews', 'petRank'];
 
 export const shapeIntoMongoObjectId = (target: string | Types.ObjectId): Types.ObjectId => {
   return typeof target === 'string' ? new Types.ObjectId(target) : target;
@@ -46,6 +47,18 @@ export const lookupAuthMemberLiked = (
 			as: 'meLiked',
 		},
 	};
+};
+
+export const lookupPetOwner = {
+  $lookup: {
+    from: 'members',
+    let: { ownerId: '$memberId' },
+    pipeline: [
+      { $match: { $expr: { $eq: ['$_id', '$$ownerId'] } } },
+      { $project: { memberPassword: 0 } },
+    ],
+    as: 'memberData',
+  },
 };
 
 interface lookupAuthMemberFollowed {
