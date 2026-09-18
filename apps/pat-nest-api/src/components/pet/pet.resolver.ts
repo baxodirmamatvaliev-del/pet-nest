@@ -6,7 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { WithoutGuard } from '../auth/guards/without.guard';
 import { AuthGuard } from '../auth/guards/auth.guard';
-import { MyPetsInquiry, OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
+import { AdminPetsInquiry, MyPetsInquiry, OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
 import { Pet, Pets } from '../../libs/dto/pet/pet';
 import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
 import { MemberType } from '../../libs/enums/member.enum';
@@ -103,5 +103,25 @@ export class PetResolver {
     console.log('Mutation: likeTargetPet');
     const petId = shapeIntoMongoObjectId(input);
     return await this.petService.likeTargetPet(memberId, petId);
+  }
+
+  /** ADMIN **/
+
+  //barcha statusdagi e’lonlarni filtr va sahifalash bilan ko‘rsatadi.
+  @Roles(MemberType.ADMIN)
+  @UseGuards(RolesGuard)
+  @Query(() => Pets)
+  public async getAllPetsByAdmin(@Args('input') input: AdminPetsInquiry): Promise<Pets> {
+    console.log('Query: getAllPetsByAdmin');
+    return await this.petService.getAllPetsByAdmin(input);
+  }
+
+  //admin faol yoki band e’lonni yangilaydi; yakunlansa egasining memberPets soni kamayadi.
+  @Roles(MemberType.ADMIN)
+  @UseGuards(RolesGuard)
+  @Mutation(() => Pet)
+  public async updatePetByAdmin(@Args('input') input: PetUpdateInput): Promise<Pet> {
+    console.log('Mutation: updatePetByAdmin');
+    return await this.petService.updatePetByAdmin(input);
   }
 }

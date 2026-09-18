@@ -197,3 +197,54 @@ export class MyPetsInquiry {
   @Type(() => MyPetSearch)
   search: MyPetSearch;
 }
+
+@InputType()
+export class AdminPetSearch {
+  @Field(() => PetStatus, { nullable: true })
+  @IsOptional()
+  @IsEnum(PetStatus)
+  petStatus?: PetStatus;
+
+  @Field(() => [PetType], { nullable: true })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(PetType, { each: true })
+  typeList?: PetType[];
+
+  @Field(() => [PetLocation], { nullable: true })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(PetLocation, { each: true })
+  locationList?: PetLocation[];
+}
+
+@InputType()
+export class AdminPetsInquiry {
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  page: number;
+
+  @Field(() => Int)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit: number;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsIn(availablePetSorts)
+  sort?: string;
+
+  @Field(() => Direction, { nullable: true })
+  @IsOptional()
+  @IsEnum(Direction)
+  direction?: Direction;
+
+  @Field(() => AdminPetSearch)
+  @IsDefined()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AdminPetSearch)
+  search: AdminPetSearch;
+}

@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { MemberService } from '../member/member.service';
 import { Pet, Pets } from '../../libs/dto/pet/pet';
-import { MyPetsInquiry, OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
+import { AdminPetsInquiry, MyPetsInquiry, OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
 import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { PetListingType, PetStatus } from '../../libs/enums/pet.enum';
@@ -211,5 +211,45 @@ export class PetService {
 
     if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
     return result;
+  }
+
+  public async getAllPetsByAdmin(input: AdminPetsInquiry): Promise<Pets> {
+    const { petStatus, typeList, locationList } = input.search;
+    const match: Record<string, unknown> = {};
+    const sort: Record<string, 1 | -1> = {
+      [input.sort ?? 'createdAt']: input.direction ?? Direction.DESC,
+      _id: input.direction ?? Direction.DESC,
+    };
+
+    if (petStatus) match.petStatus = petStatus;
+    if (typeList?.length) match.petType = { $in: typeList };
+    if (locationList?.length) match.petLocation = { $in: locationList };
+
+    const result = await this.petModel.aggregate<Pets>([
+      { $match: match },
+      { $sort: sort },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+            lookupPetOwner,
+            { $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+    return result[0];
+  }
+
+  public async updatePetByAdmin(input: PetUpdateInput): Promise<Pet> {
+    const petId = shapeIntoMongoObjectId(input._id);
+    const target = await this.petModel.findById(petId).select('memberId').exec();
+    if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+    return await this.updatePet(target.memberId, input);
   }
 }
