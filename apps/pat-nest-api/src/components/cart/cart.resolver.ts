@@ -2,7 +2,7 @@ import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Types } from 'mongoose';
 import { Cart } from '../../libs/dto/cart/cart';
-import { AddToCartInput } from '../../libs/dto/cart/cart.input';
+import { AddToCartInput, RemoveCartItemInput, UpdateCartItemInput } from '../../libs/dto/cart/cart.input';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { CartService } from './cart.service';
@@ -28,5 +28,32 @@ export class CartResolver {
   public async getMyCart(@AuthMember('_id') memberId: Types.ObjectId): Promise<Cart> {
     console.log('Query: getMyCart');
     return await this.cartService.getMyCart(memberId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Mutation(() => Cart)
+  public async updateCartItem(
+    @Args('input') input: UpdateCartItemInput,
+    @AuthMember('_id') memberId: Types.ObjectId,
+  ): Promise<Cart> {
+    console.log('Mutation: updateCartItem');
+    return await this.cartService.updateCartItem(memberId, input);
+  }
+
+  @UseGuards(AuthGuard)
+  @Mutation(() => Cart)
+  public async removeCartItem(
+    @Args('input') input: RemoveCartItemInput,
+    @AuthMember('_id') memberId: Types.ObjectId,
+  ): Promise<Cart> {
+    console.log('Mutation: removeCartItem');
+    return await this.cartService.removeCartItem(memberId, input);
+  }
+
+  @UseGuards(AuthGuard)
+  @Mutation(() => Cart)
+  public async clearCart(@AuthMember('_id') memberId: Types.ObjectId): Promise<Cart> {
+    console.log('Mutation: clearCart');
+    return await this.cartService.clearCart(memberId);
   }
 }

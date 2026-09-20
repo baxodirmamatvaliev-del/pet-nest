@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Cart, CartItem } from '../../libs/dto/cart/cart';
-import { AddToCartInput } from '../../libs/dto/cart/cart.input';
+import { AddToCartInput, RemoveCartItemInput, UpdateCartItemInput } from '../../libs/dto/cart/cart.input';
 import { Product } from '../../libs/dto/product/product';
 import { Message } from '../../libs/enums/common.enum';
 import { ProductStatus } from '../../libs/enums/product.enum';
@@ -96,5 +96,64 @@ export class CartService {
     }
 
     return { memberId, cartItems, totalQuantity, totalAmount };
+  }
+
+  public async updateCartItem(memberId: Types.ObjectId, input: UpdateCartItemInput): Promise<Cart> {
+    const productId = shapeIntoMongoObjectId(input.productId);
+    const cart = await this.cartModel.findOne({ memberId }).exec();
+    if (!cart) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+    const cartItem = cart.cartItems.find(
+      (item) => item.productId.equals(productId) && item.sku === input.sku,
+    );
+    if (!cartItem) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+    const product = await this.productModel.findOne({
+      _id: productId,
+      productStatus: ProductStatus.ACTIVE,
+    }).exec();
+    if (!product) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+    const variant = product.productVariants.find((item) => item.sku === input.sku);
+    if (!variant) throw new BadRequestException(Message.NO_DATA_FOUND);
+    if (input.quantity > variant.stock) {
+      throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+    }
+
+    cartItem.quantity = input.quantity;
+    try {
+      await cart.save();
+    } catch (err) {
+      console.log('Error! CartService.updateCartItem', err.message);
+      throw new BadRequestException(Message.UPDATE_FAILED);
+    }
+
+    return await this.getMyCart(memberId);
+  }
+
+  public async removeCartItem(memberId: Types.ObjectId, input: RemoveCartItemInput): Promise<Cart> {
+    const productId = shapeIntoMongoObjectId(input.productId);
+    const cart = await this.cartModel.findOne({ memberId }).exec();
+    if (!cart) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+    const itemIndex = cart.cartItems.findIndex(
+      (item) => item.productId.equals(productId) && item.sku === input.sku,
+    );
+    if (itemIndex === -1) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+    cart.cartItems.splice(itemIndex, 1);
+    try {
+      await cart.save();
+    } catch (err) {
+      console.log('Error! CartService.removeCartItem', err.message);
+      throw new BadRequestException(Message.REMOVE_FAILED);
+    }
+
+    return await this.getMyCart(memberId);
+  }
+
+  public async clearCart(memberId: Types.ObjectId): Promise<Cart> {
+    await this.cartModel.updateOne({ memberId }, { $set: { cartItems: [] } }).exec();
+    return await this.getMyCart(memberId);
   }
 }
