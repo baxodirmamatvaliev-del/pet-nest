@@ -9,4 +9,5 @@ export interface StoredCartItem {
 export interface StoredCart {
   memberId: Types.ObjectId;
   cartItems: StoredCartItem[];
+  updatedAt: Date;
 }
