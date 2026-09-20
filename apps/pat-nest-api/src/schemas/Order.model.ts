@@ -106,6 +106,14 @@ const OrderSchema = new Schema(
         cancelledAt: {
             type: Date,
         },
+
+        shippedAt: {
+            type: Date,
+        },
+
+        deliveredAt: {
+            type: Date,
+        },
     },
     { timestamps: true, collection: 'orders' },
 );

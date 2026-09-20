@@ -59,6 +59,12 @@ export class Order {
   @Field({ nullable: true })
   cancelledAt?: Date;
 
+  @Field({ nullable: true })
+  shippedAt?: Date;
+
+  @Field({ nullable: true })
+  deliveredAt?: Date;
+
   @Field()
   createdAt: Date;
 

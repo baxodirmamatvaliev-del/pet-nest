@@ -1,13 +1,15 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { CreateOrderInput, MyOrdersInquiry } from '../../libs/dto/order/order.input';
 import { Order, OrderItem, Orders } from '../../libs/dto/order/order';
+import { AdminOrdersInquiry, CreateOrderInput, MyOrdersInquiry } from '../../libs/dto/order/order.input';
+import { OrderStatusUpdateInput } from '../../libs/dto/order/order.update';
 import { Product } from '../../libs/dto/product/product';
 import { Message } from '../../libs/enums/common.enum';
 import { OrderStatus } from '../../libs/enums/order.enum';
 import { ProductStatus } from '../../libs/enums/product.enum';
 import { StoredCart, StoredCartItem } from '../../libs/types/cart';
+import { shapeIntoMongoObjectId } from '../../libs/types/config';
 import { StoredOrder } from '../../libs/types/order';
 
 @Injectable()
@@ -90,6 +92,58 @@ export class OrderService {
       { timestamps: false },
     ).exec();
 
+    return order;
+  }
+
+  public async getAllOrdersByAdmin(input: AdminOrdersInquiry): Promise<Orders> {
+    const { memberId, orderStatus } = input.search;
+    const match: Record<string, unknown> = {};
+    if (orderStatus) match.orderStatus = orderStatus;
+    if (memberId) match.memberId = shapeIntoMongoObjectId(memberId);
+
+    const result = await this.orderModel.aggregate<Orders>([
+      { $match: match },
+      { $sort: { createdAt: -1, _id: -1 } },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    return result[0];
+  }
+
+  public async updateOrderStatusByAdmin(input: OrderStatusUpdateInput): Promise<Order> {
+    const { _id, orderStatus } = input;
+    const search = {
+      _id: shapeIntoMongoObjectId(_id),
+      orderStatus: OrderStatus.PAYMENT_CONFIRMED,
+    };
+    const changes: { orderStatus: OrderStatus; shippedAt?: Date; deliveredAt?: Date } = {
+      orderStatus,
+    };
+
+    if (orderStatus === OrderStatus.IN_TRANSIT) {
+      changes.shippedAt = new Date();
+    } else if (orderStatus === OrderStatus.DELIVERED_TO_CUSTOMER) {
+      search.orderStatus = OrderStatus.IN_TRANSIT;
+      changes.deliveredAt = new Date();
+    } else {
+      throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+    }
+
+    const order = await this.orderModel.findOneAndUpdate(
+      search,
+      { $set: changes },
+      { returnDocument: 'after' },
+    ).exec();
+
+    if (!order) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
     return order;
   }
 
