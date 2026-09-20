@@ -102,6 +102,10 @@ const OrderSchema = new Schema(
             type: String,
             trim: true,
         },
+
+        cancelledAt: {
+            type: Date,
+        },
     },
     { timestamps: true, collection: 'orders' },
 );

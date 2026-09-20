@@ -56,6 +56,9 @@ export class Order {
   @Field({ nullable: true })
   deliveryNote?: string;
 
+  @Field({ nullable: true })
+  cancelledAt?: Date;
+
   @Field()
   createdAt: Date;
 

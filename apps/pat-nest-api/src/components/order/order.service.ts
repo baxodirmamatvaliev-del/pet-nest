@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CreateOrderInput, MyOrdersInquiry } from '../../libs/dto/order/order.input';
@@ -67,6 +67,30 @@ export class OrderService {
     ]).exec();
 
     return result[0];
+  }
+
+  public async getOrder(memberId: Types.ObjectId, orderId: Types.ObjectId): Promise<Order> {
+    const order = await this.orderModel.findOne({ _id: orderId, memberId }).exec();
+    if (!order) throw new NotFoundException(Message.NO_DATA_FOUND);
+    return order;
+  }
+
+  public async cancelOrder(memberId: Types.ObjectId, orderId: Types.ObjectId): Promise<Order> {
+    const order = await this.orderModel.findOneAndUpdate(
+      { _id: orderId, memberId, orderStatus: OrderStatus.PENDING },
+      { $set: { orderStatus: OrderStatus.CANCELLED, cancelledAt: new Date() } },
+      { returnDocument: 'after' },
+    ).exec();
+    if (!order) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+
+    const nextCartDate = new Date(Math.max(Date.now(), order.cartUpdatedAt.getTime() + 1));
+    await this.cartModel.updateOne(
+      { memberId, updatedAt: order.cartUpdatedAt },
+      { $set: { updatedAt: nextCartDate } },
+      { timestamps: false },
+    ).exec();
+
+    return order;
   }
 
   private async findExistingOrder(memberId: Types.ObjectId, cartUpdatedAt: Date): Promise<Order | null> {
