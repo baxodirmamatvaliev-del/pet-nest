@@ -1,5 +1,4 @@
 import { Types } from 'mongoose';
-import { T } from './common';
 import { LikeGroup } from '../enums/like.enum';
 
 export const availableMemberSorts = ['createdAt', 'updatedAt', 'memberLikes', 'memberViews'];
@@ -64,13 +63,12 @@ export const lookupPetOwner = {
 
 export const lookupMember = lookupPetOwner;
 
-interface lookupAuthMemberFollowed {
-	followerId: T;
-	followingId: string
+interface LookupAuthMemberFollowed {
+	followerId: Types.ObjectId | null;
+	followingId: string;
 }
 
-
-export const lookupAuthMemberFollowed = (input: lookupAuthMemberFollowed ) => {
+export const lookupAuthMemberFollowed = (input: LookupAuthMemberFollowed) => {
 	const {followerId, followingId} =input
 	return {
 		$lookup: {
@@ -103,4 +101,28 @@ export const lookupAuthMemberFollowed = (input: lookupAuthMemberFollowed ) => {
 			as: 'meFollowed',
 		},
 	};
+};
+
+export const lookupFollowingData = {
+  $lookup: {
+    from: 'members',
+    let: { memberId: '$followingId' },
+    pipeline: [
+      { $match: { $expr: { $eq: ['$_id', '$$memberId'] } } },
+      { $project: { memberPassword: 0 } },
+    ],
+    as: 'followingData',
+  },
+};
+
+export const lookupFollowerData = {
+  $lookup: {
+    from: 'members',
+    let: { memberId: '$followerId' },
+    pipeline: [
+      { $match: { $expr: { $eq: ['$_id', '$$memberId'] } } },
+      { $project: { memberPassword: 0 } },
+    ],
+    as: 'followerData',
+  },
 };
