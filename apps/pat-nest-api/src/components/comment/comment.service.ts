@@ -2,13 +2,13 @@ import { BadRequestException, Injectable, InternalServerErrorException } from '@
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { BoardArticle } from '../../libs/dto/board-article/board-article';
-import { Comment } from '../../libs/dto/comment/comment';
-import { CommentInput } from '../../libs/dto/comment/comment.input';
+import { Comment, Comments } from '../../libs/dto/comment/comment';
+import { CommentInput, CommentsInquiry } from '../../libs/dto/comment/comment.input';
 import { CommentUpdateInput } from '../../libs/dto/comment/comment.update';
 import { BoardArticleStatus } from '../../libs/enums/board-article.enum';
 import { CommentGroup, CommentStatus } from '../../libs/enums/comment.enum';
-import { Message } from '../../libs/enums/common.enum';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { Direction, Message } from '../../libs/enums/common.enum';
+import { lookupMember, shapeIntoMongoObjectId } from '../../libs/types/config';
 import { MemberService } from '../member/member.service';
 import { PetService } from '../pet/pet.service';
 
@@ -69,6 +69,42 @@ export class CommentService {
     ).exec();
 
     if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+    return result;
+  }
+
+  public async getComments(input: CommentsInquiry): Promise<Comments> {
+    const commentRefId = shapeIntoMongoObjectId(input.search.commentRefId);
+    const match = { commentRefId, commentStatus: CommentStatus.ACTIVE };
+    const direction = input.direction ?? Direction.DESC;
+    const sort: Record<string, 1 | -1> = {
+      [input.sort ?? 'createdAt']: direction,
+      _id: direction,
+    };
+
+    const result = await this.commentModel
+    .aggregate<Comments>([
+      { $match: match },
+      { $sort: sort },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+            lookupMember,
+            //meLiked 
+            { $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    return result[0];
+  }
+
+  public async removeCommentByAdmin(commentId: Types.ObjectId): Promise<Comment> {
+    const result = await this.commentModel.findByIdAndDelete(commentId).exec();
+    if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
     return result;
   }
 }
