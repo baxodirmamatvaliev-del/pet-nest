@@ -116,7 +116,12 @@ export class MemberService {
 
   public async memberStatsEditor(input: {
     _id: Types.ObjectId;
-    targetKey: 'memberLikes' | 'memberPets' | 'memberComments';
+    targetKey:
+      | 'memberLikes'
+      | 'memberPets'
+      | 'memberComments'
+      | 'memberFollowers'
+      | 'memberFollowings';
     modifier: number;
   }): Promise<Member> {
     const { _id, targetKey, modifier } = input;
