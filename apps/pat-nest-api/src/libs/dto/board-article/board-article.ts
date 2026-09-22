@@ -1,10 +1,11 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Types } from 'mongoose';
 import { BoardArticleCategory, BoardArticleStatus } from '../../enums/board-article.enum';
 
 @ObjectType()
 export class BoardArticle {
   @Field(() => ID)
-  _id: string;
+  _id: Types.ObjectId;
 
   @Field(() => BoardArticleCategory)
   articleCategory: BoardArticleCategory;
@@ -31,7 +32,7 @@ export class BoardArticle {
   articleComments: number;
 
   @Field(() => ID)
-  memberId: string;
+  memberId: Types.ObjectId;
 
   @Field()
   createdAt: Date;

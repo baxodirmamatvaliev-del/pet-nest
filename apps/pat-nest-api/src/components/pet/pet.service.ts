@@ -201,7 +201,11 @@ export class PetService {
     return await this.petStatsEditor({ _id: petId, targetKey: 'petLikes', modifier });
   }
 
-  public async petStatsEditor(input: { _id: Types.ObjectId; targetKey: 'petLikes'; modifier: number }): Promise<Pet> {
+  public async petStatsEditor(input: {
+    _id: Types.ObjectId;
+    targetKey: 'petLikes' | 'petComments';
+    modifier: number;
+  }): Promise<Pet> {
     const { _id, targetKey, modifier } = input;
     const result = await this.petModel.findOneAndUpdate(
       { _id, petStatus: PetStatus.ACTIVE },
