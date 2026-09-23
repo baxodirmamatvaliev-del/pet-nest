@@ -13,7 +13,9 @@ import { Types } from 'mongoose';
 import { shapeIntoMongoObjectId } from '../../libs/types/config';
 import { WithoutGuard } from '../auth/guards/without.guard';
 import { GraphQLUpload } from 'graphql-upload';
-import { FileUpload, ImageUploadService } from './image-upload.service';
+import { ImageUploadService } from './image-upload.service';
+import type { FileUpload } from './image-upload.service';
+import { FavoriteInquiry } from '../../libs/dto/like/like.input';
 
 @Resolver(() => Member)
 export class MemberResolver {
@@ -83,6 +85,16 @@ export class MemberResolver {
     return await this.memberService.likeTargetMember(memberId, likeRefId);
   }
 
+  @UseGuards(AuthGuard)
+  @Query(() => Members)
+  public async getFavoriteMembers(
+    @Args('input') input: FavoriteInquiry,
+    @AuthMember('_id') memberId: Types.ObjectId,
+  ): Promise<Members> {
+    console.log('Query: getFavoriteMembers');
+    return await this.memberService.getFavoriteMembers(memberId, input);
+  }
+
   @UseGuards(WithoutGuard)
   @Query(() => Members)
   public async getAgents(
@@ -117,7 +129,7 @@ export class MemberResolver {
   @UseGuards(AuthGuard)
   @Mutation(() => String)
   public async imageUploader(
-    @Args('file', { type: () => GraphQLUpload }) file: Promise<FileUpload>,
+    @Args('file', { type: () => GraphQLUpload }) file: FileUpload,
     @Args('target') target: string,
   ): Promise<string> {
     console.log('Mutation: imageUploader');

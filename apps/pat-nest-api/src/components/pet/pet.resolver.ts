@@ -9,6 +9,7 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { AdminPetsInquiry, MyPetsInquiry, OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
 import { Pet, Pets } from '../../libs/dto/pet/pet';
 import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
+import { FavoriteInquiry } from '../../libs/dto/like/like.input';
 import { MemberType } from '../../libs/enums/member.enum';
 import { shapeIntoMongoObjectId } from '../../libs/types/config';
 import { PetService } from './pet.service';
@@ -66,7 +67,7 @@ export class PetResolver {
   @UseGuards(AuthGuard)
   @Query(() => Pets)
   public async getFavoritePets(
-    @Args('input') input: OrdinaryInquiry,
+    @Args('input') input: FavoriteInquiry,
     @AuthMember('_id') memberId: Types.ObjectId,
   ): Promise<Pets> {
     console.log('Query: getFavoritePets');

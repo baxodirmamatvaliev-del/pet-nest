@@ -13,6 +13,7 @@ import { LikeService } from '../like/like.service';
 import { ViewGroup } from '../../libs/enums/view.enum';
 import { LikeGroup } from '../../libs/enums/like.enum';
 import { Follow, MeFollowed } from '../../libs/dto/follow/follow';
+import { FavoriteInquiry } from '../../libs/dto/like/like.input';
 
 @Injectable()
 export class MemberService {
@@ -112,6 +113,10 @@ export class MemberService {
       targetKey: 'memberLikes',
       modifier,
     });
+  }
+
+  public async getFavoriteMembers(memberId: Types.ObjectId, input: FavoriteInquiry): Promise<Members> {
+    return await this.likeService.getFavoriteMembers(memberId, input);
   }
 
   public async memberStatsEditor(input: {

@@ -11,6 +11,7 @@ import { ViewService } from '../view/view.service';
 import { LikeService } from '../like/like.service';
 import { ViewGroup } from '../../libs/enums/view.enum';
 import { LikeGroup } from '../../libs/enums/like.enum';
+import { FavoriteInquiry } from '../../libs/dto/like/like.input';
 import { lookupAuthMemberLiked, lookupPetOwner, shapeIntoMongoObjectId } from '../../libs/types/config';
 
 @Injectable()
@@ -151,7 +152,7 @@ export class PetService {
     return result[0];
   }
 
-  public async getFavoritePets(memberId: Types.ObjectId, input: OrdinaryInquiry): Promise<Pets> {
+  public async getFavoritePets(memberId: Types.ObjectId, input: FavoriteInquiry): Promise<Pets> {
     return await this.likeService.getFavoritePets(memberId, input);
   }
 
