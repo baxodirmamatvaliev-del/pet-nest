@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import { Order, OrderItem, Orders } from '../../libs/dto/order/order';
 import { AdminOrdersInquiry, CreateOrderInput, MyOrdersInquiry } from '../../libs/dto/order/order.input';
 import { OrderStatusUpdateInput } from '../../libs/dto/order/order.update';
@@ -21,32 +21,55 @@ export class OrderService {
   ) {}
 
   public async createOrder(memberId: Types.ObjectId, input: CreateOrderInput): Promise<Order> {
-    const cart = await this.cartModel.findOne({ memberId }).lean().exec();
-    if (!cart || cart.cartItems.length === 0) {
-      throw new BadRequestException(Message.NO_DATA_FOUND);
-    }
-
-    const existingOrder = await this.findExistingOrder(memberId, cart.updatedAt);
-    if (existingOrder) return existingOrder;
-
-    const { orderItems, totalAmount } = await this.prepareOrderItems(cart.cartItems);
+    // Transaction starting 
+    const session = await this.orderModel.db.startSession();
+    session.startTransaction();
 
     try {
-      return await this.orderModel.create({
+      const cart = await this.cartModel
+      .findOne({ memberId })
+      .session(session).lean()
+      .exec(); 
+      if (!cart || cart.cartItems.length === 0) { 
+        throw new BadRequestException(Message.NO_DATA_FOUND); //savat boshbolsa order yaratilmaydi
+      } 
+
+      const existingOrder = await this.orderModel.findOne({
         memberId,
         cartUpdatedAt: cart.updatedAt,
-        orderStatus: OrderStatus.PENDING,
-        orderItems,
-        totalAmount,
-        ...input,
-      });
-    } catch (err) {
-      if (err.code === 11000) {
-        const repeatedOrder = await this.findExistingOrder(memberId, cart.updatedAt);
-        if (repeatedOrder) return repeatedOrder;
+      }).session(session).exec();
+      if (existingOrder) {
+        await session.abortTransaction();
+        return existingOrder;
       }
+
+      const { orderItems, totalAmount } = 
+      await this.prepareOrderItems(cart.cartItems, session);//Bu mahsulot, variant, narx va stokni tekshiradi.
+      await this.reduceProductStock(orderItems, session);//Stok kamayadi masalan  10 - 2 = 8 Order PENDING holatida saqlanadi.
+
+      const [order] = await this.orderModel.create(
+        [
+          {
+            memberId,
+            cartUpdatedAt: cart.updatedAt,
+            orderStatus: OrderStatus.PENDING,
+            orderItems,
+            totalAmount,
+            ...input,
+          },
+        ],
+        { session },
+      );
+
+      await session.commitTransaction();
+      return order;
+    } catch (err) {
+      if (session.inTransaction()) await session.abortTransaction();
       console.log('Error! OrderService.createOrder', err.message);
+      if (err instanceof BadRequestException) throw err;
       throw new BadRequestException(Message.CREATE_FAILED);
+    } finally {
+      await session.endSession();
     }
   }
 
@@ -78,21 +101,41 @@ export class OrderService {
   }
 
   public async cancelOrder(memberId: Types.ObjectId, orderId: Types.ObjectId): Promise<Order> {
-    const order = await this.orderModel.findOneAndUpdate(
-      { _id: orderId, memberId, orderStatus: OrderStatus.PENDING },
-      { $set: { orderStatus: OrderStatus.CANCELLED, cancelledAt: new Date() } },
-      { returnDocument: 'after' },
-    ).exec();
-    if (!order) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+    const session = await this.orderModel.db.startSession();
+    session.startTransaction();
 
-    const nextCartDate = new Date(Math.max(Date.now(), order.cartUpdatedAt.getTime() + 1));
-    await this.cartModel.updateOne(
-      { memberId, updatedAt: order.cartUpdatedAt },
-      { $set: { updatedAt: nextCartDate } },
-      { timestamps: false },
-    ).exec();
+    try {
+      const order = await this.orderModel.findOne({
+        _id: orderId,
+        memberId,
+        orderStatus: OrderStatus.PENDING,
+      }).session(session).exec();
+      if (!order) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
 
-    return order;
+      await this.restoreProductStock(order.orderItems, session);//stokni qaytaradi.
+
+      order.orderStatus = OrderStatus.CANCELLED;
+      order.cancelledAt = new Date();
+      await order.save({ session });
+
+      const nextCartDate = new Date(Math.max(Date.now(), order.cartUpdatedAt.getTime() + 1));
+      await this.cartModel.updateOne(
+        { memberId, updatedAt: order.cartUpdatedAt },
+        { $set: { updatedAt: nextCartDate } },
+        { timestamps: false, session },
+      ).exec();
+
+      await session.commitTransaction();
+      return order;
+    } catch (err) {
+      if (session.inTransaction())
+         await session.abortTransaction();
+      console.log('Error! OrderService.cancelOrder', err.message);
+      if (err instanceof BadRequestException) throw err;
+      throw new BadRequestException(Message.UPDATE_FAILED);
+    } finally {
+      await session.endSession();
+    }
   }
 
   public async getAllOrdersByAdmin(input: AdminOrdersInquiry): Promise<Orders> {
@@ -147,11 +190,7 @@ export class OrderService {
     return order;
   }
 
-  private async findExistingOrder(memberId: Types.ObjectId, cartUpdatedAt: Date): Promise<Order | null> {
-    return await this.orderModel.findOne({ memberId, cartUpdatedAt }).exec();
-  }
-
-  private async prepareOrderItems(cartItems: StoredCartItem[]): Promise<{
+  private async prepareOrderItems(cartItems: StoredCartItem[], session: ClientSession): Promise<{
     orderItems: OrderItem[];
     totalAmount: number;
   }> {
@@ -159,7 +198,7 @@ export class OrderService {
     const products = await this.productModel.find({
       _id: { $in: productIds },
       productStatus: ProductStatus.ACTIVE,
-    }).lean().exec();
+    }).session(session).lean().exec();
 
     const orderItems: OrderItem[] = [];
     let totalAmount = 0;
@@ -189,5 +228,51 @@ export class OrderService {
     }
 
     return { orderItems, totalAmount };
+  }
+
+  private async reduceProductStock(
+    orderItems: OrderItem[],
+    session: ClientSession,
+  ): Promise<void> {
+    for (const item of orderItems) {
+      const result = await this.productModel.updateOne(
+        {
+          _id: item.productId,
+          productStatus: ProductStatus.ACTIVE,
+          productVariants: {
+            $elemMatch: {
+              sku: item.sku,
+              stock: { $gte: item.quantity },
+            },
+          },
+        },
+        { $inc: { 'productVariants.$.stock': -item.quantity } },
+        { session },
+      ).exec();
+
+      if (result.modifiedCount !== 1) {
+        throw new BadRequestException(Message.INSUFFICIENT_STOCK);
+      }
+    }
+  }
+
+  private async restoreProductStock(
+    orderItems: OrderItem[],
+    session: ClientSession,
+  ): Promise<void> {
+    for (const item of orderItems) {
+      const result = await this.productModel.updateOne(
+        {
+          _id: item.productId,
+          'productVariants.sku': item.sku,
+        },
+        { $inc: { 'productVariants.$.stock': item.quantity } },
+        { session },
+      ).exec();
+
+      if (result.modifiedCount !== 1) {
+        throw new BadRequestException(Message.UPDATE_FAILED);
+      }
+    }
   }
 }
