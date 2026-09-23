@@ -111,6 +111,12 @@ const ProductSchema = new Schema(
             min: 0,
         },
 
+        productRank: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
         deletedAt: {
             type: Date,
         },

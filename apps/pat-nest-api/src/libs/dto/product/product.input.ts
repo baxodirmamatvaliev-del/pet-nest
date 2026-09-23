@@ -4,7 +4,7 @@ import { ArrayMinSize, IsArray, IsDefined, IsEnum, IsIn, IsInt, IsNotEmpty, IsOb
 import { ProductCategory, ProductStatus, ProductType } from '../../enums/product.enum';
 import { Direction } from '../../enums/common.enum';
 
-const availableProductSorts = ['createdAt', 'productName', 'productRating', 'productSold'];
+const availableProductSorts = ['createdAt', 'productName', 'productRating', 'productSold', 'productRank'];
 
 @InputType()
 export class ProductVariantInput {
