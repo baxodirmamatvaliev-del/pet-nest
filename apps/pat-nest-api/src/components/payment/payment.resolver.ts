@@ -1,0 +1,36 @@
+import { UseGuards } from '@nestjs/common';
+import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { Types } from 'mongoose';
+import { ConfirmPaymentInput, CreatePaymentInput } from '../../libs/dto/payment/payment.input';
+import { Payment } from '../../libs/dto/payment/payment';
+import { MemberType } from '../../libs/enums/member.enum';
+import { AuthMember } from '../auth/decorators/authMember.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { PaymentService } from './payment.service';
+
+@Resolver(() => Payment)
+export class PaymentResolver {
+  constructor(private readonly paymentService: PaymentService) {}
+
+  //Foydalanuvchi o‘zining PENDING orderi uchun payment yaratadi.
+  @UseGuards(AuthGuard)
+  @Mutation(() => Payment)
+  public async createPayment(
+    @Args('input') input: CreatePaymentInput,
+    @AuthMember('_id') memberId: Types.ObjectId,
+  ): Promise<Payment> {
+    console.log('Mutation: createPayment');
+    return await this.paymentService.createPayment(memberId, input);
+  }
+
+  // ADMIN to‘lov muvaffaqiyatli bo‘lganini tasdiqlaydi.
+  @Roles(MemberType.ADMIN)
+  @UseGuards(RolesGuard)
+  @Mutation(() => Payment)
+  public async confirmPayment(@Args('input') input: ConfirmPaymentInput): Promise<Payment> {
+    console.log('Mutation: confirmPayment');
+    return await this.paymentService.confirmPayment(input);
+  }
+}

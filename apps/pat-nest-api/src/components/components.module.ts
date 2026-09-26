@@ -6,6 +6,7 @@ import { CartModule } from './cart/cart.module';
 import { OrderModule } from './order/order.module';
 import { CommentModule } from './comment/comment.module';
 import { FollowModule } from './follow/follow.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
     imports:[
@@ -15,7 +16,8 @@ import { FollowModule } from './follow/follow.module';
         CartModule,
         OrderModule,
         CommentModule,
-        FollowModule
+        FollowModule,
+        PaymentModule
     ]
 })
 export class ComponentsModule {}
