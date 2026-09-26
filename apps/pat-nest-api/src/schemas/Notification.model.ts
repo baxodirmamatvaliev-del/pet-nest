@@ -51,6 +51,16 @@ const NotificationSchema = new Schema(
             ref: 'Pet',
         },
 
+        productId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Product',
+        },
+
+        orderId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Order',
+        },
+
         articleId: {
             type: Schema.Types.ObjectId,
             ref: 'BoardArticle',
@@ -58,5 +68,7 @@ const NotificationSchema = new Schema(
     },
     { timestamps: true, collection: 'notifications' },
 );
+
+NotificationSchema.index({ receiverId: 1, createdAt: -1 });
 
 export default NotificationSchema;
