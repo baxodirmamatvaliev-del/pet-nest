@@ -46,6 +46,16 @@ export class PaymentService {
     }
   }
 
+  public async getPayment( memberId: Types.ObjectId, paymentId: Types.ObjectId,): Promise<Payment> {
+    const payment = await this.paymentModel.findOne({
+      _id: paymentId,
+      memberId,
+    }).exec();
+
+    if (!payment) throw new BadRequestException(Message.NO_DATA_FOUND);
+    return payment;
+  }
+
   public async confirmPayment(input: ConfirmPaymentInput): Promise<Payment> {
     const paymentId = shapeIntoMongoObjectId(input.paymentId);
     const session = await this.paymentModel.db.startSession();
