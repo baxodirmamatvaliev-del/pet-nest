@@ -105,25 +105,7 @@ export class OrderService {
     session.startTransaction();
 
     try {
-      const order = await this.orderModel.findOne({
-        _id: orderId,
-        memberId,
-        orderStatus: OrderStatus.PENDING,
-      }).session(session).exec();
-      if (!order) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
-
-      await this.restoreProductStock(order.orderItems, session);//stokni qaytaradi.
-
-      order.orderStatus = OrderStatus.CANCELLED;
-      order.cancelledAt = new Date();
-      await order.save({ session });
-
-      const nextCartDate = new Date(Math.max(Date.now(), order.cartUpdatedAt.getTime() + 1));
-      await this.cartModel.updateOne(
-        { memberId, updatedAt: order.cartUpdatedAt },
-        { $set: { updatedAt: nextCartDate } },
-        { timestamps: false, session },
-      ).exec();
+      const order = await this.cancelPendingOrder(memberId, orderId, session);
 
       await session.commitTransaction();
       return order;
@@ -136,6 +118,34 @@ export class OrderService {
     } finally {
       await session.endSession();
     }
+  }
+
+  public async cancelPendingOrder(
+    memberId: Types.ObjectId,
+    orderId: Types.ObjectId,
+    session: ClientSession,
+  ): Promise<Order> {
+    const order = await this.orderModel.findOne({
+      _id: orderId,
+      memberId,
+      orderStatus: OrderStatus.PENDING,
+    }).session(session).exec();
+    if (!order) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+
+    await this.restoreProductStock(order.orderItems, session);
+
+    order.orderStatus = OrderStatus.CANCELLED;
+    order.cancelledAt = new Date();
+    await order.save({ session });
+
+    const nextCartDate = new Date(Math.max(Date.now(), order.cartUpdatedAt.getTime() + 1));
+    await this.cartModel.updateOne(
+      { memberId, updatedAt: order.cartUpdatedAt },
+      { $set: { updatedAt: nextCartDate } },
+      { timestamps: false, session },
+    ).exec();
+
+    return order;
   }
 
   public async getAllOrdersByAdmin(input: AdminOrdersInquiry): Promise<Orders> {
@@ -256,10 +266,8 @@ export class OrderService {
     }
   }
 
-  private async restoreProductStock(
-    orderItems: OrderItem[],
-    session: ClientSession,
-  ): Promise<void> {
+  //order bekor qilinganda mahsulot miqdorini stokga qaytaradi.
+  private async restoreProductStock( orderItems: OrderItem[],session: ClientSession,): Promise<void> {
     for (const item of orderItems) {
       const result = await this.productModel.updateOne(
         {

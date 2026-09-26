@@ -37,6 +37,10 @@ const PaymentSchema = new Schema(
         confirmedAt: {
             type: Date,
         },
+
+        cancelledAt: {
+            type: Date,
+        },
     },
     { timestamps: true, collection: 'payments' },
 );

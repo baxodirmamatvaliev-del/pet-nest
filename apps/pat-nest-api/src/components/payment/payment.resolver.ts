@@ -38,6 +38,18 @@ export class PaymentResolver {
     return await this.paymentService.getPayment(memberId, paymentId);
   }
 
+  //Foydalanuvchi o‘zining PENDING paymentini bekor qiladi.
+  @UseGuards(AuthGuard)
+  @Mutation(() => Payment)
+  public async cancelPayment(
+    @Args('paymentId') input: string,
+    @AuthMember('_id') memberId: Types.ObjectId,
+  ): Promise<Payment> {
+    console.log('Mutation: cancelPayment');
+    const paymentId = shapeIntoMongoObjectId(input);
+    return await this.paymentService.cancelPayment(memberId, paymentId);
+  }
+
   // ADMIN to‘lov muvaffaqiyatli bo‘lganini tasdiqlaydi.
   @Roles(MemberType.ADMIN)
   @UseGuards(RolesGuard)

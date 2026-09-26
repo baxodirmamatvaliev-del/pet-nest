@@ -10,6 +10,7 @@ import { OrderStatus } from '../../libs/enums/order.enum';
 import { PaymentStatus } from '../../libs/enums/payment.enum';
 import { shapeIntoMongoObjectId } from '../../libs/types/config';
 import { StoredOrder } from '../../libs/types/order';
+import { OrderService } from '../order/order.service';
 
 @Injectable()
 export class PaymentService {
@@ -17,6 +18,7 @@ export class PaymentService {
     @InjectModel('Payment') private readonly paymentModel: Model<Payment>,
     @InjectModel('Order') private readonly orderModel: Model<StoredOrder>,
     @InjectModel('Product') private readonly productModel: Model<Product>,
+    private readonly orderService: OrderService,
   ) {}
 
   public async createPayment( memberId: Types.ObjectId, input: CreatePaymentInput,): Promise<Payment> {
@@ -54,6 +56,31 @@ export class PaymentService {
 
     if (!payment) throw new BadRequestException(Message.NO_DATA_FOUND);
     return payment;
+  }
+
+  public async cancelPayment(memberId: Types.ObjectId, paymentId: Types.ObjectId,): Promise<Payment> {
+    try {
+      return await this.paymentModel.db.transaction(async (session) => {
+        const payment = await this.paymentModel.findOne({
+          _id: paymentId,
+          memberId,
+          paymentStatus: PaymentStatus.PENDING,
+        }).session(session).exec();
+        if (!payment) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+        await this.orderService.cancelPendingOrder(memberId, payment.orderId, session);
+
+        payment.paymentStatus = PaymentStatus.CANCELLED;
+        payment.cancelledAt = new Date();
+        await payment.save({ session });
+
+        return payment;
+      });
+    } catch (err) {
+      console.log('Error! PaymentService.cancelPayment', err.message);
+      // if (err instanceof BadRequestException) throw err;
+      throw new BadRequestException(Message.UPDATE_FAILED);
+    }
   }
 
   public async confirmPayment(input: ConfirmPaymentInput): Promise<Payment> {
@@ -95,10 +122,9 @@ export class PaymentService {
     }
   }
 
-  private async increaseProductSales(
-    orderItems: OrderItem[],
-    session: ClientSession,
-  ): Promise<void> {
+
+  //Bu qiymat eng ko‘p sotilgan mahsulotlarni aniqlash va reyting tuzishda ishlatiladi.
+  private async increaseProductSales(orderItems: OrderItem[], session: ClientSession,): Promise<void> {
     for (const item of orderItems) {
       await this.productModel.updateOne(
         { _id: item.productId },
@@ -107,4 +133,5 @@ export class PaymentService {
       ).exec();
     }
   }
+
 }

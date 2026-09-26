@@ -25,6 +25,9 @@ export class Payment {
   @Field({ nullable: true })
   confirmedAt?: Date;
 
+  @Field({ nullable: true })
+  cancelledAt?: Date;
+
   @Field()
   createdAt: Date;
 

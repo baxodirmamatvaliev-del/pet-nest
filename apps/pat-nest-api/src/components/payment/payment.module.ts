@@ -4,6 +4,7 @@ import OrderSchema from '../../schemas/Order.model';
 import PaymentSchema from '../../schemas/Payment.model';
 import ProductSchema from '../../schemas/Product.model';
 import { AuthModule } from '../auth/auth.module';
+import { OrderModule } from '../order/order.module';
 import { PaymentResolver } from './payment.resolver';
 import { PaymentService } from './payment.service';
 
@@ -15,6 +16,7 @@ import { PaymentService } from './payment.service';
       { name: 'Product', schema: ProductSchema },
     ]),
     AuthModule,
+    OrderModule,
   ],
   providers: [PaymentResolver, PaymentService],
 })
