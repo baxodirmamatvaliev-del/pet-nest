@@ -9,9 +9,10 @@ import { Types } from 'mongoose';
 import { Server, Socket } from 'socket.io';
 import { AuthService } from '../components/auth/auth.service';
 import { Notification } from '../libs/dto/notification/notification';
+import { corsOriginHandler } from '../libs/config/environment';
 
 @WebSocketGateway({
-  cors: { origin: true, credentials: true },
+  cors: { origin: corsOriginHandler, credentials: true },
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
