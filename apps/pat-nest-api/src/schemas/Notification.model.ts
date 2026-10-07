@@ -65,6 +65,11 @@ const NotificationSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: 'BoardArticle',
         },
+
+        inquiryId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Inquiry',
+        },
     },
     { timestamps: true, collection: 'notifications' },
 );

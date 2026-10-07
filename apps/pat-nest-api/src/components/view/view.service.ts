@@ -4,8 +4,10 @@ import { Model, Types } from 'mongoose';
 import { View } from '../../libs/dto/view/view';
 import { OrdinaryInquiry } from '../../libs/dto/pet/pet.input';
 import { Pets } from '../../libs/dto/pet/pet';
+import { Products } from '../../libs/dto/product/product';
 import { ViewGroup } from '../../libs/enums/view.enum';
 import { PetStatus } from '../../libs/enums/pet.enum';
+import { ProductStatus } from '../../libs/enums/product.enum';
 import { LikeGroup } from '../../libs/enums/like.enum';
 import { lookupAuthMemberLiked, lookupPetOwner } from '../../libs/types/config';
 
@@ -42,6 +44,29 @@ export class ViewService {
             lookupAuthMemberLiked(memberId, '$_id', LikeGroup.PET),
             lookupPetOwner,
             { $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    return result[0] ?? { list: [], metaCounter: [] };
+  }
+
+  public async getVisitedProducts(memberId: Types.ObjectId, input: OrdinaryInquiry): Promise<Products> {
+    const result = await this.viewModel.aggregate<Products>([
+      { $match: { memberId, viewGroup: ViewGroup.PRODUCT } },
+      { $sort: { updatedAt: -1 as const, _id: -1 as const } },
+      { $lookup: { from: 'products', localField: 'viewRefId', foreignField: '_id', as: 'product' } },
+      { $unwind: '$product' },
+      { $match: { 'product.productStatus': ProductStatus.ACTIVE } },
+      { $replaceRoot: { newRoot: '$product' } },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+            lookupAuthMemberLiked(memberId, '$_id', LikeGroup.PRODUCT),
           ],
           metaCounter: [{ $count: 'total' }],
         },

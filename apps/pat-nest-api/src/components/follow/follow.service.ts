@@ -5,6 +5,7 @@ import { Follow, Followers, Followings } from '../../libs/dto/follow/follow';
 import { FollowInquiry } from '../../libs/dto/follow/follow.input';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { LikeGroup } from '../../libs/enums/like.enum';
+import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
 import {
   lookupAuthMemberFollowed,
   lookupAuthMemberLiked,
@@ -13,12 +14,14 @@ import {
   shapeIntoMongoObjectId,
 } from '../../libs/types/config';
 import { MemberService } from '../member/member.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class FollowService {
   constructor(
     @InjectModel('Follow') private readonly followModel: Model<Follow>,
     private readonly memberService: MemberService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   public async subscribe(followerId: Types.ObjectId, followingId: Types.ObjectId): Promise<Follow> {
@@ -31,6 +34,18 @@ export class FollowService {
 
     await this.memberService.memberStatsEditor({ _id: followerId, targetKey: 'memberFollowings', modifier: 1, });
     await this.memberService.memberStatsEditor({ _id: followingId, targetKey: 'memberFollowers',modifier: 1, });
+
+    try {
+      await this.notificationService.createNotification({
+        notificationType: NotificationType.FOLLOW,
+        notificationGroup: NotificationGroup.MEMBER,
+        notificationTitle: 'You have a new follower',
+        authorId: followerId,
+        receiverId: followingId,
+      });
+    } catch (err) {
+      console.log('Error! FollowService.subscribe notification', err.message);
+    }
 
     return result;
   }

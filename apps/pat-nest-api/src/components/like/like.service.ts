@@ -5,10 +5,12 @@ import { Like, MeLiked } from '../../libs/dto/like/like';
 import { FavoriteInquiry } from '../../libs/dto/like/like.input';
 import { Members } from '../../libs/dto/member/member';
 import { Pets } from '../../libs/dto/pet/pet';
+import { Products } from '../../libs/dto/product/product';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { LikeGroup } from '../../libs/enums/like.enum';
 import { MemberStatus } from '../../libs/enums/member.enum';
 import { PetStatus } from '../../libs/enums/pet.enum';
+import { ProductStatus } from '../../libs/enums/product.enum';
 import {
   lookupAuthMemberFollowed,
   lookupAuthMemberLiked,
@@ -97,6 +99,29 @@ export class LikeService {
             { $limit: input.limit },
             lookupAuthMemberLiked(memberId, '$_id', LikeGroup.MEMBER),
             lookupAuthMemberFollowed({ followerId: memberId, followingId: '$_id' }),
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    return result[0] ?? { list: [], metaCounter: [] };
+  }
+
+  public async getFavoriteProducts(memberId: Types.ObjectId, input: FavoriteInquiry): Promise<Products> {
+    const result = await this.likeModel.aggregate<Products>([
+      { $match: { memberId, likeGroup: LikeGroup.PRODUCT } },
+      { $sort: { updatedAt: Direction.DESC, _id: Direction.DESC } },
+      { $lookup: { from: 'products', localField: 'likeRefId', foreignField: '_id', as: 'product' } },
+      { $unwind: '$product' },
+      { $match: { 'product.productStatus': ProductStatus.ACTIVE } },
+      { $replaceRoot: { newRoot: '$product' } },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+            lookupAuthMemberLiked(memberId, '$_id', LikeGroup.PRODUCT),
           ],
           metaCounter: [{ $count: 'total' }],
         },

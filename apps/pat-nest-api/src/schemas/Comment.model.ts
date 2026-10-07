@@ -20,6 +20,12 @@ const CommentSchema = new Schema(
             required: true,
         },
 
+        commentRating: {
+            type: Number,
+            min: 1,
+            max: 5,
+        },
+
         commentRefId: {
             type: Schema.Types.ObjectId,
             required: true,
@@ -31,6 +37,11 @@ const CommentSchema = new Schema(
         },
     },
     { timestamps: true, collection: 'comments' },
+);
+
+CommentSchema.index(
+    { commentGroup: 1, commentRefId: 1, memberId: 1 },
+    { unique: true, partialFilterExpression: { commentGroup: CommentGroup.PRODUCT } },
 );
 
 export default CommentSchema;

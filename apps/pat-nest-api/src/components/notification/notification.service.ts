@@ -1,9 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Notification, Notifications } from '../../libs/dto/notification/notification';
 import { NotificationsInquiry } from '../../libs/dto/notification/notification.input';
 import { Message } from '../../libs/enums/common.enum';
+import { NotificationStatus } from '../../libs/enums/notification.enum';
 import { CreateNotification } from '../../libs/types/notification';
 import { SocketGateway } from '../../socket/socket.gateway';
 
@@ -47,5 +48,15 @@ export class NotificationService {
     ]).exec();
 
     return result[0] ?? { list: [], metaCounter: [] };
+  }
+
+  public async readNotification(memberId: Types.ObjectId, notificationId: Types.ObjectId): Promise<Notification> {
+    const notification = await this.notificationModel.findOneAndUpdate(
+      { _id: notificationId, receiverId: memberId },
+      { $set: { notificationStatus: NotificationStatus.READ } },
+      { returnDocument: 'after' },
+    ).exec();
+    if (!notification) throw new NotFoundException(Message.NO_DATA_FOUND);
+    return notification;
   }
 }

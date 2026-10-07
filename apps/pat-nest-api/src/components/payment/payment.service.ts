@@ -58,6 +58,10 @@ export class PaymentService {
     return payment;
   }
 
+  public async getPaymentByOrderByAdmin(orderId: Types.ObjectId): Promise<Payment | null> {
+    return await this.paymentModel.findOne({ orderId }).exec();
+  }
+
   public async cancelPayment(memberId: Types.ObjectId, paymentId: Types.ObjectId,): Promise<Payment> {
     try {
       return await this.paymentModel.db.transaction(async (session) => {

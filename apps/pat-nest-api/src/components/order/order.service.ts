@@ -7,10 +7,12 @@ import { OrderStatusUpdateInput } from '../../libs/dto/order/order.update';
 import { Product } from '../../libs/dto/product/product';
 import { Message } from '../../libs/enums/common.enum';
 import { OrderStatus } from '../../libs/enums/order.enum';
+import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
 import { ProductStatus } from '../../libs/enums/product.enum';
 import { StoredCart, StoredCartItem } from '../../libs/types/cart';
 import { shapeIntoMongoObjectId } from '../../libs/types/config';
 import { StoredOrder } from '../../libs/types/order';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class OrderService {
@@ -18,6 +20,7 @@ export class OrderService {
     @InjectModel('Order') private readonly orderModel: Model<StoredOrder>,
     @InjectModel('Cart') private readonly cartModel: Model<StoredCart>,
     @InjectModel('Product') private readonly productModel: Model<Product>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   public async createOrder(memberId: Types.ObjectId, input: CreateOrderInput): Promise<Order> {
@@ -138,7 +141,7 @@ export class OrderService {
     return result[0];
   }
 
-  public async updateOrderStatusByAdmin(input: OrderStatusUpdateInput): Promise<Order> {
+  public async updateOrderStatusByAdmin(input: OrderStatusUpdateInput, adminId: Types.ObjectId): Promise<Order> {
     const orderId = shapeIntoMongoObjectId(input._id);
     let order: Order | null = null;
 
@@ -159,6 +162,18 @@ export class OrderService {
     }
 
     if (!order) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+    try {
+      await this.notificationService.createNotification({
+        notificationType: NotificationType.ORDER,
+        notificationGroup: NotificationGroup.ORDER,
+        notificationTitle: input.orderStatus === OrderStatus.IN_TRANSIT ? 'Your order is on its way' : 'Your order was delivered',
+        authorId: adminId,
+        receiverId: order.memberId,
+        orderId: order._id,
+      });
+    } catch (err) {
+      console.log('Error! OrderService.updateOrderStatusByAdmin notification', err.message);
+    }
     return order;
   }
 

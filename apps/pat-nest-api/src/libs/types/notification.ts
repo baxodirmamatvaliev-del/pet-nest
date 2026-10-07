@@ -12,4 +12,5 @@ export interface CreateNotification {
   productId?: Types.ObjectId;
   orderId?: Types.ObjectId;
   articleId?: Types.ObjectId;
+  inquiryId?: Types.ObjectId;
 }

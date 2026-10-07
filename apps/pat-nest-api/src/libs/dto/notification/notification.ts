@@ -41,6 +41,9 @@ export class Notification {
   @Field(() => ID, { nullable: true })
   articleId?: Types.ObjectId;
 
+  @Field(() => ID, { nullable: true })
+  inquiryId?: Types.ObjectId;
+
   @Field()
   createdAt: Date;
 

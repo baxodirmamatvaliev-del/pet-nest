@@ -117,6 +117,18 @@ const ProductSchema = new Schema(
             min: 0,
         },
 
+        productLikes: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
+        productViews: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
         deletedAt: {
             type: Date,
         },

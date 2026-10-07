@@ -1,16 +1,26 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { Product, Products } from '../../libs/dto/product/product';
-import { AdminProductsInquiry, MyProductsInquiry, ProductInput, ProductsInquiry } from '../../libs/dto/product/product.input';
+import { AdminProductsInquiry, MyProductsInquiry, ProductInput, ProductSearch, ProductsInquiry } from '../../libs/dto/product/product.input';
+import { FavoriteInquiry } from '../../libs/dto/like/like.input';
+import { OrdinaryInquiry } from '../../libs/dto/pet/pet.input';
 import { ProductUpdateInput } from '../../libs/dto/product/product.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { ProductStatus } from '../../libs/enums/product.enum';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { LikeGroup } from '../../libs/enums/like.enum';
+import { ViewGroup } from '../../libs/enums/view.enum';
+import { lookupAuthMemberLiked, shapeIntoMongoObjectId } from '../../libs/types/config';
+import { LikeService } from '../like/like.service';
+import { ViewService } from '../view/view.service';
 
 @Injectable()
 export class ProductService {
-  constructor(@InjectModel('Product') private readonly productModel: Model<Product>) {}
+  constructor(
+    @InjectModel('Product') private readonly productModel: Model<Product>,
+    private readonly likeService: LikeService,
+    private readonly viewService: ViewService,
+  ) {}
 
   public async createProduct(memberId: Types.ObjectId, input: ProductInput): Promise<Product> {
     try {
@@ -21,48 +31,60 @@ export class ProductService {
     }
   }
 
-  public async getProduct(productId: Types.ObjectId): Promise<Product> {
-    const result = await this.productModel.findOne({
+  public async getProduct(memberId: Types.ObjectId | null, productId: Types.ObjectId): Promise<Product> {
+    const search = {
       _id: productId,
       productStatus: ProductStatus.ACTIVE,
-    }).exec();
+    };
+    const result = await this.productModel.findOne(search).lean().exec();
 
     if (!result) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+    if (memberId) {
+      const newView = await this.viewService.recordView({ memberId, viewRefId: productId, viewGroup: ViewGroup.PRODUCT });
+      if (newView) {
+        const updatedProduct = await this.productModel.findOneAndUpdate(
+          search,
+          { $inc: { productViews: 1 } },
+          { returnDocument: 'after' },
+        ).exec();
+        if (!updatedProduct) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+        result.productViews = updatedProduct.productViews;
+      }
+      result.meLiked = await this.likeService.checkLikeExistence({ memberId, likeRefId: productId, likeGroup: LikeGroup.PRODUCT });
+    }
     return result;
   }
 
-  public async getProducts(input: ProductsInquiry): Promise<Products> {
+  public async getProducts(memberId: Types.ObjectId | null, input: ProductsInquiry): Promise<Products> {
     const match: Record<string, unknown> = { productStatus: ProductStatus.ACTIVE };
-    const { categoryList, typeList, text } = input.search;
+    const { categoryList, typeList, text, memberId: targetMemberId } = input.search;
 
-    if (categoryList?.length) match.productCategory = { $in: categoryList };
-    if (typeList?.length) match.productType = { $in: typeList };
-    if (text) {
-      const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      match.productName = new RegExp(escaped, 'i');
-    }
+    if (targetMemberId) match.memberId = shapeIntoMongoObjectId(targetMemberId);
+    this.applyProductFilters(match, { categoryList, typeList, text });
 
-    const direction = input.direction ?? Direction.DESC;
-    const sort: Record<string, 1 | -1> = {
-      [input.sort ?? 'createdAt']: direction,
-      _id: direction,
-    };
+    return this.findProducts(match, input, [lookupAuthMemberLiked(memberId, '$_id', LikeGroup.PRODUCT)]);
+  }
 
-    const result = await this.productModel.aggregate<Products>([
-      { $match: match },
-      { $sort: sort },
-      {
-        $facet: {
-          list: [
-            { $skip: (input.page - 1) * input.limit },
-            { $limit: input.limit },
-          ],
-          metaCounter: [{ $count: 'total' }],
-        },
-      },
-    ]).exec();
+  public async getFavoriteProducts(memberId: Types.ObjectId, input: FavoriteInquiry): Promise<Products> {
+    return await this.likeService.getFavoriteProducts(memberId, input);
+  }
 
-    return result[0];
+  public async getVisitedProducts(memberId: Types.ObjectId, input: OrdinaryInquiry): Promise<Products> {
+    return await this.viewService.getVisitedProducts(memberId, input);
+  }
+
+  public async likeTargetProduct(memberId: Types.ObjectId, productId: Types.ObjectId): Promise<Product> {
+    const target = await this.productModel.findOne({ _id: productId, productStatus: ProductStatus.ACTIVE }).exec();
+    if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+    const modifier = await this.likeService.toggleLike({ memberId, likeRefId: productId, likeGroup: LikeGroup.PRODUCT });
+    const result = await this.productModel.findOneAndUpdate(
+      { _id: productId, productStatus: ProductStatus.ACTIVE },
+      { $inc: { productLikes: modifier } },
+      { returnDocument: 'after' },
+    ).exec();
+    if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+    return result;
   }
 
   public async getMyProducts(memberId: Types.ObjectId, input: MyProductsInquiry): Promise<Products> {
@@ -76,27 +98,7 @@ export class ProductService {
     };
     if (input.search.productStatus) match.productStatus = input.search.productStatus;
 
-    const direction = input.direction ?? Direction.DESC;
-    const sort: Record<string, 1 | -1> = {
-      [input.sort ?? 'createdAt']: direction,
-      _id: direction,
-    };
-
-    const result = await this.productModel.aggregate<Products>([
-      { $match: match },
-      { $sort: sort },
-      {
-        $facet: {
-          list: [
-            { $skip: (input.page - 1) * input.limit },
-            { $limit: input.limit },
-          ],
-          metaCounter: [{ $count: 'total' }],
-        },
-      },
-    ]).exec();
-
-    return result[0];
+    return this.findProducts(match, input);
   }
 
   public async updateProduct(memberId: Types.ObjectId, input: ProductUpdateInput): Promise<Product> {
@@ -138,34 +140,9 @@ export class ProductService {
     const { productStatus, categoryList, typeList, text } = input.search;
 
     if (productStatus) match.productStatus = productStatus;
-    if (categoryList?.length) match.productCategory = { $in: categoryList };
-    if (typeList?.length) match.productType = { $in: typeList };
-    if (text) {
-      const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      match.productName = new RegExp(escaped, 'i');
-    }
+    this.applyProductFilters(match, { categoryList, typeList, text });
 
-    const direction = input.direction ?? Direction.DESC;
-    const sort: Record<string, 1 | -1> = {
-      [input.sort ?? 'createdAt']: direction,
-      _id: direction,
-    };
-
-    const result = await this.productModel.aggregate<Products>([
-      { $match: match },
-      { $sort: sort },
-      {
-        $facet: {
-          list: [
-            { $skip: (input.page - 1) * input.limit },
-            { $limit: input.limit },
-          ],
-          metaCounter: [{ $count: 'total' }],
-        },
-      },
-    ]).exec();
-
-    return result[0];
+    return this.findProducts(match, input);
   }
 
   public async updateProductByAdmin(input: ProductUpdateInput): Promise<Product> {
@@ -193,5 +170,39 @@ export class ProductService {
       console.log('Error! ProductService.updateProductByAdmin', err.message);
       throw new BadRequestException(Message.UPDATE_FAILED);
     }
+  }
+
+  private applyProductFilters(match: Record<string, unknown>, search: ProductSearch): void {
+    const { categoryList, typeList, text } = search;
+    if (categoryList?.length) match.productCategory = { $in: categoryList };
+    if (typeList?.length) match.productType = { $in: typeList };
+    if (text) {
+      const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      match.productName = new RegExp(escaped, 'i');
+    }
+  }
+
+  private async findProducts(
+    match: Record<string, unknown>,
+    input: ProductsInquiry | MyProductsInquiry | AdminProductsInquiry,
+    listStages: PipelineStage.FacetPipelineStage[] = [],
+  ): Promise<Products> {
+    const direction = input.direction ?? Direction.DESC;
+    const result = await this.productModel.aggregate<Products>([
+      { $match: match },
+      { $sort: { [input.sort ?? 'createdAt']: direction, _id: direction } },
+      {
+        $facet: {
+          list: [
+            { $skip: (input.page - 1) * input.limit },
+            { $limit: input.limit },
+            ...listStages,
+          ],
+          metaCounter: [{ $count: 'total' }],
+        },
+      },
+    ]).exec();
+
+    return result[0];
   }
 }

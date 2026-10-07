@@ -38,6 +38,15 @@ export class PaymentResolver {
     return await this.paymentService.getPayment(memberId, paymentId);
   }
 
+  @Roles(MemberType.ADMIN)
+  @UseGuards(RolesGuard)
+  @Query(() => Payment, { nullable: true })
+  public async getPaymentByOrderByAdmin(@Args('orderId') input: string): Promise<Payment | null> {
+    console.log('Query: getPaymentByOrderByAdmin');
+    const orderId = shapeIntoMongoObjectId(input);
+    return await this.paymentService.getPaymentByOrderByAdmin(orderId);
+  }
+
   //Foydalanuvchi o‘zining PENDING paymentini bekor qiladi.
   @UseGuards(AuthGuard)
   @Mutation(() => Payment)

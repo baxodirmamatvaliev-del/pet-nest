@@ -2,6 +2,7 @@ import { Field, Float, ID, Int, ObjectType } from '@nestjs/graphql';
 import type { Types } from 'mongoose';
 import { ProductCategory, ProductStatus, ProductType } from '../../enums/product.enum';
 import { TotalCounter } from '../member/member';
+import { MeLiked } from '../like/like';
 
 @ObjectType()
 export class ProductVariant {
@@ -62,6 +63,12 @@ export class Product {
   @Field(() => Float)
   productRank: number;
 
+  @Field(() => Int, { nullable: true })
+  productLikes?: number;
+
+  @Field(() => Int, { nullable: true })
+  productViews?: number;
+
   @Field({ nullable: true })
   deletedAt?: Date;
 
@@ -70,6 +77,9 @@ export class Product {
 
   @Field()
   updatedAt: Date;
+
+  @Field(() => [MeLiked], { nullable: true })
+  meLiked?: MeLiked[];
 }
 
 @ObjectType()

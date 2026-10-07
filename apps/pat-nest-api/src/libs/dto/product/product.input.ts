@@ -1,6 +1,6 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsDefined, IsEnum, IsIn, IsInt, IsNotEmpty, IsObject, IsOptional, IsString, Length, Max, Min, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsDefined, IsEnum, IsIn, IsInt, IsMongoId, IsNotEmpty, IsObject, IsOptional, IsString, Length, Max, Min, ValidateNested } from 'class-validator';
 import { ProductCategory, ProductStatus, ProductType } from '../../enums/product.enum';
 import { Direction } from '../../enums/common.enum';
 
@@ -70,6 +70,11 @@ export class ProductInput {
 
 @InputType()
 export class ProductSearch {
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsMongoId()
+  memberId?: string;
+
   @Field(() => [ProductCategory], { nullable: true })
   @IsOptional()
   @IsArray()
