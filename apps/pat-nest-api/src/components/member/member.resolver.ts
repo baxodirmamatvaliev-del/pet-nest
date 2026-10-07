@@ -12,7 +12,7 @@ import { MemberUpdateByAdminInput, MemberUpdateInput } from '../../libs/dto/memb
 import { Types } from 'mongoose';
 import { shapeIntoMongoObjectId } from '../../libs/types/config';
 import { WithoutGuard } from '../auth/guards/without.guard';
-import { GraphQLUpload } from 'graphql-upload';
+import GraphQLUpload from 'graphql-upload/GraphQLUpload.mjs';
 import { ImageUploadService } from './image-upload.service';
 import type { FileUpload } from './image-upload.service';
 import { FavoriteInquiry } from '../../libs/dto/like/like.input';
@@ -129,7 +129,7 @@ export class MemberResolver {
   @UseGuards(AuthGuard)
   @Mutation(() => String)
   public async imageUploader(
-    @Args('file', { type: () => GraphQLUpload }) file: FileUpload,
+    @Args('file', { type: () => GraphQLUpload }) file: Promise<FileUpload>,
     @Args('target') target: string,
   ): Promise<string> {
     console.log('Mutation: imageUploader');
