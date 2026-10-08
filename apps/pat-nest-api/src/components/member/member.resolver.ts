@@ -16,6 +16,7 @@ import GraphQLUpload from 'graphql-upload/GraphQLUpload.mjs';
 import { ImageUploadService } from './image-upload.service';
 import type { FileUpload } from './image-upload.service';
 import { FavoriteInquiry } from '../../libs/dto/like/like.input';
+import { Throttle } from '@nestjs/throttler';
 
 @Resolver(() => Member)
 export class MemberResolver {
@@ -24,12 +25,14 @@ export class MemberResolver {
     private readonly imageUploadService: ImageUploadService,
   ) {}
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Mutation(() => Member)
   public async signup(@Args('input') input: MemberInput): Promise<Member> {
     console.log('Mutation: signup');
     return await this.memberService.signup(input);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Mutation(() => AuthPayload)
   public async login(@Args('input') input: LoginInput): Promise<AuthPayload> {
     console.log('Mutation: login');
@@ -126,6 +129,7 @@ export class MemberResolver {
   }
 
   /** IMAGE UPLOADER **/
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UseGuards(AuthGuard)
   @Mutation(() => String)
   public async imageUploader(
@@ -136,6 +140,7 @@ export class MemberResolver {
     return await this.imageUploadService.imageUploader(await file, target);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @UseGuards(AuthGuard)
   @Mutation(() => [String])
   public async imagesUploader(

@@ -21,6 +21,8 @@ export enum Message {
   ONLY_SPECIFIC_ROLES_ALLOWED = 'Allowed only for members with specific role!',
   NOT_ALLOWED_REQUEST = 'Not Allowed Request!',
   PROVIDE_ALLOWED_FORMAT = 'Please provide jpg, jpeg or png images!',
+  INVALID_IMAGE_CONTENT = 'Image content does not match its file type!',
+  IMAGE_TOO_LARGE = 'Image must not exceed 15 MB!',
   SELF_SUBSCRIPTION_DENIED = 'Self subscription is denied!',
   INSUFFICIENT_STOCK = 'Not enough product stock!',
 }
