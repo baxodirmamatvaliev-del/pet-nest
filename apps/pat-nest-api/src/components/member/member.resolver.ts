@@ -133,7 +133,8 @@ export class MemberResolver {
   @UseGuards(AuthGuard)
   @Mutation(() => String)
   public async imageUploader(
-    @Args('file', { type: () => GraphQLUpload }) file: Promise<FileUpload>,
+    // Emit Object metadata so ValidationPipe does not try to construct a Promise.
+    @Args('file', { type: () => GraphQLUpload }) file: Promise<FileUpload> | FileUpload,
     @Args('target') target: string,
   ): Promise<string> {
     console.log('Mutation: imageUploader');
