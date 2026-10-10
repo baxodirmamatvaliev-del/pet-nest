@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { Readable } from 'stream';
 import { MemberResolver } from './member.resolver';
+import { AuthService } from '../auth/auth.service';
 import { MemberService } from './member.service';
 import { ImageUploadService } from './image-upload.service';
 import type { FileUpload } from './image-upload.service';
@@ -31,7 +32,7 @@ describe('MemberResolver upload validation', () => {
     expect(validatedFile.createReadStream).toBe(file.createReadStream);
 
     const upload = jest.fn().mockResolvedValue('uploads/member/avatar.png');
-    const resolver = new MemberResolver({} as MemberService, { imageUploader: upload } as unknown as ImageUploadService);
+    const resolver = new MemberResolver({} as MemberService, { imageUploader: upload } as unknown as ImageUploadService, {} as AuthService);
     const pendingFile = pipe.transform(Promise.resolve(file), { type: 'body', metatype, data: 'file' });
 
     await expect(resolver.imageUploader(pendingFile, 'member')).resolves.toBe('uploads/member/avatar.png');

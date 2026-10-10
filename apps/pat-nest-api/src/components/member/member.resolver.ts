@@ -1,4 +1,6 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import type { Request, Response } from 'express';
+import { AuthService } from '../auth/auth.service';
+import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { MemberService } from './member.service';
 import { AuthPayload, Member, Members } from '../../libs/dto/member/member';
@@ -23,20 +25,44 @@ export class MemberResolver {
   constructor(
     private readonly memberService: MemberService,
     private readonly imageUploadService: ImageUploadService,
+    private readonly authService: AuthService,
   ) {}
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Mutation(() => Member)
-  public async signup(@Args('input') input: MemberInput): Promise<Member> {
+  public async signup(@Args('input') input: MemberInput, @Context() context: { req: Request; res: Response }): Promise<Member> {
     console.log('Mutation: signup');
-    return await this.memberService.signup(input);
+    // Cookie berishdan oldin so‘rov ruxsat etilgan frontenddan kelganini tekshiramiz.
+    this.authService.assertTrustedOrigin(context.req);
+    const member = await this.memberService.signup(input);
+    // Login/signup muvaffaqiyatli: 15 kunlik sessiya yaratib, refresh cookie beramiz.
+    await this.authService.startSession(member._id, context.res);
+    return member;
   }
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Mutation(() => AuthPayload)
-  public async login(@Args('input') input: LoginInput): Promise<AuthPayload> {
+  public async login(@Args('input') input: LoginInput, @Context() context: { req: Request; res: Response }): Promise<AuthPayload> {
     console.log('Mutation: login');
-    return await this.memberService.login(input);
+    // Cookie berishdan oldin so‘rov ruxsat etilgan frontenddan kelganini tekshiramiz.
+    this.authService.assertTrustedOrigin(context.req);
+    const payload = await this.memberService.login(input);
+    // Login/signup muvaffaqiyatli: 15 kunlik sessiya yaratib, refresh cookie beramiz.
+    await this.authService.startSession(payload.member._id, context.res);
+    return payload;
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Mutation(() => AuthPayload)
+  public async refreshToken(@Context() context: { req: Request; res: Response }): Promise<AuthPayload> {
+    // Access token talab qilinmaydi; refresh cookie tekshirilib, yangi tokenlar beriladi.
+    return await this.authService.refresh(context.req, context.res) as AuthPayload;
+  }
+
+  @Mutation(() => Boolean)
+  public async logout(@Context() context: { req: Request; res: Response }): Promise<boolean> {
+    // Cookie’ni tozalab, unga tegishli bazadagi sessiyani bekor qilamiz.
+    return await this.authService.logout(context.req, context.res);
   }
 
   @UseGuards(AuthGuard)
