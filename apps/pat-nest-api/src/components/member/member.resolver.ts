@@ -1,24 +1,24 @@
-import type { Request, Response } from 'express';
-import { AuthService } from '../auth/auth.service';
-import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { MemberService } from './member.service';
+import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Throttle } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
+import GraphQLUpload from 'graphql-upload/GraphQLUpload.mjs';
+import { Types } from 'mongoose';
+import { FavoriteInquiry } from '../../libs/dto/like/like.input';
 import { AuthPayload, Member, Members } from '../../libs/dto/member/member';
 import { AgentsInquiry, LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
-import { AuthGuard } from '../auth/guards/auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
+import { MemberUpdateByAdminInput, MemberUpdateInput } from '../../libs/dto/member/member.update';
+import { MemberType } from '../../libs/enums/member.enum';
+import { toObjectId } from '../../libs/types/config';
+import { AuthService } from '../auth/auth.service';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { MemberType } from '../../libs/enums/member.enum';
-import { MemberUpdateByAdminInput, MemberUpdateInput } from '../../libs/dto/member/member.update';
-import { Types } from 'mongoose';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
-import { WithoutGuard } from '../auth/guards/without.guard';
-import GraphQLUpload from 'graphql-upload/GraphQLUpload.mjs';
-import { ImageUploadService } from './image-upload.service';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { OptionalAuthGuard } from '../auth/guards/optional-auth.guard';
 import type { FileUpload } from './image-upload.service';
-import { FavoriteInquiry } from '../../libs/dto/like/like.input';
-import { Throttle } from '@nestjs/throttler';
+import { ImageUploadService } from './image-upload.service';
+import { MemberService } from './member.service';
 
 @Resolver(() => Member)
 export class MemberResolver {
@@ -88,17 +88,17 @@ export class MemberResolver {
 		@Args('input') input: MemberUpdateInput,
 		@AuthMember('_id') memberId: string | Types.ObjectId,
 	): Promise<Member> {
-		const targetId = shapeIntoMongoObjectId(memberId);
+		const targetId = toObjectId(memberId);
 		return await this.memberService.updateMember(targetId, input);
 	}
 
-	@UseGuards(WithoutGuard)
+	@UseGuards(OptionalAuthGuard)
 	@Query(() => Member)
 	public async getMember(
 		@Args('memberId') input: string,
 		@AuthMember('_id') memberId: Types.ObjectId | null,
 	): Promise<Member> {
-		const targetId = shapeIntoMongoObjectId(input);
+		const targetId = toObjectId(input);
 		return await this.memberService.getMember(memberId, targetId);
 	}
 
@@ -108,7 +108,7 @@ export class MemberResolver {
 		@Args('memberId') input: string,
 		@AuthMember('_id') memberId: Types.ObjectId,
 	): Promise<Member> {
-		const likeRefId = shapeIntoMongoObjectId(input);
+		const likeRefId = toObjectId(input);
 		return await this.memberService.likeTargetMember(memberId, likeRefId);
 	}
 
@@ -121,7 +121,7 @@ export class MemberResolver {
 		return await this.memberService.getFavoriteMembers(memberId, input);
 	}
 
-	@UseGuards(WithoutGuard)
+	@UseGuards(OptionalAuthGuard)
 	@Query(() => Members)
 	public async getAgents(
 		@Args('input') input: AgentsInquiry,

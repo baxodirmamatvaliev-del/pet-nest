@@ -6,12 +6,13 @@ import { AdminOrdersInquiry, CreateOrderInput, MyOrdersInquiry } from '../../lib
 import { OrderStatusUpdateInput } from '../../libs/dto/order/order.update';
 import { Product } from '../../libs/dto/product/product';
 import { Message } from '../../libs/enums/common.enum';
-import { OrderStatus } from '../../libs/enums/order.enum';
 import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
+import { OrderStatus } from '../../libs/enums/order.enum';
 import { ProductStatus } from '../../libs/enums/product.enum';
 import { StoredCart, StoredCartItem } from '../../libs/types/cart';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { toObjectId } from '../../libs/types/config';
 import { StoredOrder } from '../../libs/types/order';
+import { getErrorMessage } from '../../libs/utils/error.util';
 import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
@@ -25,40 +26,9 @@ export class OrderService {
 
 	public async createOrder(memberId: Types.ObjectId, input: CreateOrderInput): Promise<Order> {
 		try {
-			return await this.orderModel.db.transaction(async (session) => {
-				const cart = await this.cartModel.findOne({ memberId }).session(session).lean().exec();
-				if (!cart?.cartItems.length) throw new BadRequestException(Message.NO_DATA_FOUND);
-
-				const existingOrder = await this.orderModel
-					.findOne({
-						memberId,
-						cartUpdatedAt: cart.updatedAt,
-					})
-					.session(session)
-					.exec();
-				if (existingOrder) return existingOrder;
-
-				const { orderItems, totalAmount } = await this.prepareOrderItems(cart.cartItems, session);
-				await this.reduceProductStock(orderItems, session);
-
-				const [order] = await this.orderModel.create(
-					[
-						{
-							memberId,
-							cartUpdatedAt: cart.updatedAt,
-							orderStatus: OrderStatus.PENDING,
-							orderItems,
-							totalAmount,
-							...input,
-						},
-					],
-					{ session },
-				);
-
-				return order;
-			});
+			return await this.orderModel.db.transaction((session) => this.createPendingOrder(memberId, input, session));
 		} catch (err: unknown) {
-			console.log('Error! OrderService.createOrder', err instanceof Error ? err.message : String(err));
+			console.log('Error! OrderService.createOrder', getErrorMessage(err));
 			if (err instanceof BadRequestException) throw err;
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
@@ -68,20 +38,7 @@ export class OrderService {
 		const match: Record<string, unknown> = { memberId };
 		if (input.search.orderStatus) match.orderStatus = input.search.orderStatus;
 
-		const result = await this.orderModel
-			.aggregate<Orders>([
-				{ $match: match },
-				{ $sort: { createdAt: -1, _id: -1 } },
-				{
-					$facet: {
-						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }],
-						metaCounter: [{ $count: 'total' }],
-					},
-				},
-			])
-			.exec();
-
-		return result[0];
+		return this.findOrders(match, input);
 	}
 
 	public async getOrder(memberId: Types.ObjectId, orderId: Types.ObjectId): Promise<Order> {
@@ -94,7 +51,7 @@ export class OrderService {
 		try {
 			return await this.orderModel.db.transaction((session) => this.cancelPendingOrder(memberId, orderId, session));
 		} catch (err: unknown) {
-			console.log('Error! OrderService.cancelOrder', err instanceof Error ? err.message : String(err));
+			console.log('Error! OrderService.cancelOrder', getErrorMessage(err));
 			if (err instanceof BadRequestException) throw err;
 			throw new BadRequestException(Message.UPDATE_FAILED);
 		}
@@ -130,8 +87,21 @@ export class OrderService {
 		const { memberId, orderStatus } = input.search;
 		const match: Record<string, unknown> = {};
 		if (orderStatus) match.orderStatus = orderStatus;
-		if (memberId) match.memberId = shapeIntoMongoObjectId(memberId);
+		if (memberId) match.memberId = toObjectId(memberId);
 
+		return this.findOrders(match, input);
+	}
+
+	public async updateOrderStatusByAdmin(input: OrderStatusUpdateInput, adminId: Types.ObjectId): Promise<Order> {
+		const orderId = toObjectId(input._id);
+		const order = await this.changeDeliveryStatus(orderId, input.orderStatus);
+		if (!order) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+
+		await this.notifyOrderStatus(order, adminId, input.orderStatus);
+		return order;
+	}
+
+	private async findOrders(match: Record<string, unknown>, input: { page: number; limit: number }): Promise<Orders> {
 		const result = await this.orderModel
 			.aggregate<Orders>([
 				{ $match: match },
@@ -148,11 +118,49 @@ export class OrderService {
 		return result[0];
 	}
 
-	public async updateOrderStatusByAdmin(input: OrderStatusUpdateInput, adminId: Types.ObjectId): Promise<Order> {
-		const orderId = shapeIntoMongoObjectId(input._id);
+	// Stok kamayishi va buyurtma yaratilishi bitta MongoDB tranzaksiyasida bajariladi.
+	private async createPendingOrder(
+		memberId: Types.ObjectId,
+		input: CreateOrderInput,
+		session: ClientSession,
+	): Promise<Order> {
+		const cart = await this.cartModel.findOne({ memberId }).session(session).lean().exec();
+		if (!cart?.cartItems.length) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+		const existingOrder = await this.orderModel
+			.findOne({
+				memberId,
+				cartUpdatedAt: cart.updatedAt,
+			})
+			.session(session)
+			.exec();
+		if (existingOrder) return existingOrder;
+
+		const { orderItems, totalAmount } = await this.prepareOrderItems(cart.cartItems, session);
+		await this.reduceProductStock(orderItems, session);
+
+		const [order] = await this.orderModel.create(
+			[
+				{
+					memberId,
+					cartUpdatedAt: cart.updatedAt,
+					orderStatus: OrderStatus.PENDING,
+					orderItems,
+					totalAmount,
+					...input,
+				},
+			],
+			{ session },
+		);
+
+		return order;
+	}
+
+	// Ruxsat etilgan o'tishlar: to'langan → yo'lda → yetkazilgan.
+	private async changeDeliveryStatus(orderId: Types.ObjectId, status: OrderStatus): Promise<Order | null> {
 		let order: Order | null = null;
 
-		if (input.orderStatus === OrderStatus.IN_TRANSIT) {
+		if (status === OrderStatus.IN_TRANSIT) {
 			order = await this.orderModel
 				.findOneAndUpdate(
 					{ _id: orderId, orderStatus: OrderStatus.PAYMENT_CONFIRMED },
@@ -160,7 +168,7 @@ export class OrderService {
 					{ returnDocument: 'after' },
 				)
 				.exec();
-		} else if (input.orderStatus === OrderStatus.DELIVERED_TO_CUSTOMER) {
+		} else if (status === OrderStatus.DELIVERED_TO_CUSTOMER) {
 			order = await this.orderModel
 				.findOneAndUpdate(
 					{ _id: orderId, orderStatus: OrderStatus.IN_TRANSIT },
@@ -172,24 +180,23 @@ export class OrderService {
 			throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
 		}
 
-		if (!order) throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
+		return order;
+	}
+
+	// Bildirishnoma yuborilmasa ham, saqlangan buyurtma holati o'z kuchida qoladi.
+	private async notifyOrderStatus(order: Order, adminId: Types.ObjectId, status: OrderStatus): Promise<void> {
 		try {
 			await this.notificationService.createNotification({
 				notificationType: NotificationType.ORDER,
 				notificationGroup: NotificationGroup.ORDER,
-				notificationTitle:
-					input.orderStatus === OrderStatus.IN_TRANSIT ? 'Your order is on its way' : 'Your order was delivered',
+				notificationTitle: status === OrderStatus.IN_TRANSIT ? 'Your order is on its way' : 'Your order was delivered',
 				authorId: adminId,
 				receiverId: order.memberId,
 				orderId: order._id,
 			});
 		} catch (err: unknown) {
-			console.log(
-				'Error! OrderService.updateOrderStatusByAdmin notification',
-				err instanceof Error ? err.message : String(err),
-			);
+			console.log('Error! OrderService.updateOrderStatusByAdmin notification', getErrorMessage(err));
 		}
-		return order;
 	}
 
 	private async prepareOrderItems(

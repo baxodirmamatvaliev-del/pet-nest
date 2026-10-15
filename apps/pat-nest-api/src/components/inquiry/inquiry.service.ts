@@ -3,11 +3,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Inquiry, SupportRecipient } from '../../libs/dto/inquiry/inquiry';
 import { AnswerInquiryInput, InquiryInput } from '../../libs/dto/inquiry/inquiry.input';
+import { Member } from '../../libs/dto/member/member';
 import { InquiryStatus } from '../../libs/enums/inquiry.enum';
 import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
 import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
-import { Member } from '../../libs/dto/member/member';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { toObjectId } from '../../libs/types/config';
+import { getErrorMessage } from '../../libs/utils/error.util';
 import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
@@ -33,7 +34,7 @@ export class InquiryService {
 	}
 
 	public async createInquiry(senderId: Types.ObjectId, input: InquiryInput): Promise<Inquiry> {
-		const receiverId = shapeIntoMongoObjectId(input.receiverId);
+		const receiverId = toObjectId(input.receiverId);
 		const inquiryTitle = input.inquiryTitle.trim();
 		const inquiryContent = input.inquiryContent.trim();
 		if (inquiryTitle.length < 3 || inquiryContent.length < 10) {
@@ -74,7 +75,7 @@ export class InquiryService {
 				inquiryId: inquiry._id,
 			});
 		} catch (err: unknown) {
-			console.log('Error! InquiryService.createInquiry notification', err instanceof Error ? err.message : String(err));
+			console.log('Error! InquiryService.createInquiry notification', getErrorMessage(err));
 		}
 		return inquiry;
 	}
@@ -88,7 +89,7 @@ export class InquiryService {
 	}
 
 	public async answerInquiry(memberId: Types.ObjectId, input: AnswerInquiryInput): Promise<Inquiry> {
-		const inquiryId = shapeIntoMongoObjectId(input.inquiryId);
+		const inquiryId = toObjectId(input.inquiryId);
 		const inquiryAnswer = input.inquiryAnswer.trim();
 		if (inquiryAnswer.length < 2) throw new BadRequestException('Please write a reply.');
 		const inquiry = await this.inquiryModel
@@ -110,7 +111,7 @@ export class InquiryService {
 				inquiryId: inquiry._id,
 			});
 		} catch (err: unknown) {
-			console.log('Error! InquiryService.answerInquiry notification', err instanceof Error ? err.message : String(err));
+			console.log('Error! InquiryService.answerInquiry notification', getErrorMessage(err));
 		}
 		return inquiry;
 	}

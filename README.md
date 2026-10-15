@@ -33,10 +33,11 @@ npm run build:batch
 
 `npm run lint` fayllarni o'zgartirmaydi. Avtomatik tuzatishlar uchun `npm run lint:fix` ishlatiladi.
 
-Unit testlar refresh sessiyalari va rasm yuklash validatsiyasini tekshiradi. E2e testlar barcha API/batch modullarini yuklab, HTTP, GraphQL, tokensiz kirishni rad etish va cron vazifalari ro'yxatini tekshiradi. Testlarda MongoDB ulanishi ajratilgan provider bilan almashtiriladi: haqiqiy bazaga so'rov yoki yozuv yuborilmaydi. Shu sababli ular MongoDB tranzaksiyalari, to'liq xarid oqimi va tashqi xizmatlar sinovini almashtirmaydi.
+Unit testlar refresh sessiyalari, rasm yuklash validatsiyasi, savat narxi/stoki, mahsulot reviewlari va takroriy buyurtma tekshiruvlarini qamrab oladi. E2e testlar barcha API/batch modullarini yuklab, HTTP, GraphQL, tokensiz kirishni rad etish va cron vazifalari ro'yxatini tekshiradi. Testlarda MongoDB ulanishi ajratilgan provider bilan almashtiriladi: haqiqiy bazaga so'rov yoki yozuv yuborilmaydi. Shu sababli ular MongoDB tranzaksiyalari, to'liq xarid oqimi va tashqi xizmatlar sinovini almashtirmaydi.
 
 ## Qo'shimcha ma'lumot
 
+- [Kodni o'qish va review qilish](docs/CODE_GUIDE.md)
 - [Live chat](docs/LIVE_CHAT.md)
 - [Refresh token sessiyalari](docs/REFRESH_TOKENS.md)
 - [Deployment](DEPLOYMENT.md)

@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { MemberResolver } from './member.resolver';
-import { MemberService } from './member.service';
 import { MongooseModule } from '@nestjs/mongoose';
+import FollowSchema from '../../schemas/Follow.model';
 import MemberSchema from '../../schemas/Member.model';
 import { AuthModule } from '../auth/auth.module';
-import { ViewModule } from '../view/view.module';
 import { LikeModule } from '../like/like.module';
-import FollowSchema from '../../schemas/Follow.model';
+import { ViewModule } from '../view/view.module';
 import { ImageUploadService } from './image-upload.service';
+import { MemberResolver } from './member.resolver';
+import { MemberService } from './member.service';
 
 @Module({
 	imports: [

@@ -1,17 +1,17 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Types } from 'mongoose';
+import { FavoriteInquiry } from '../../libs/dto/like/like.input';
+import { Pet, Pets } from '../../libs/dto/pet/pet';
+import { AdminPetsInquiry, MyPetsInquiry, OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
+import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
+import { MemberType } from '../../libs/enums/member.enum';
+import { toObjectId } from '../../libs/types/config';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { WithoutGuard } from '../auth/guards/without.guard';
 import { AuthGuard } from '../auth/guards/auth.guard';
-import { AdminPetsInquiry, MyPetsInquiry, OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
-import { Pet, Pets } from '../../libs/dto/pet/pet';
-import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
-import { FavoriteInquiry } from '../../libs/dto/like/like.input';
-import { MemberType } from '../../libs/enums/member.enum';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { OptionalAuthGuard } from '../auth/guards/optional-auth.guard';
 import { PetService } from './pet.service';
 
 @Resolver(() => Pet)
@@ -26,13 +26,13 @@ export class PetResolver {
 		@Args('input') input: PetInput,
 		@AuthMember('_id') memberId: string | Types.ObjectId,
 	): Promise<Pet> {
-		return await this.petService.createPet(shapeIntoMongoObjectId(memberId), input);
+		return await this.petService.createPet(toObjectId(memberId), input);
 	}
 	//hayvon e’lonini ko‘rsatadi, ko‘rishni hisoblaydi va like holatini qaytaradi.
-	@UseGuards(WithoutGuard)
+	@UseGuards(OptionalAuthGuard)
 	@Query(() => Pet)
 	public async getPet(@Args('petId') input: string, @AuthMember('_id') memberId: Types.ObjectId | null): Promise<Pet> {
-		const petId = shapeIntoMongoObjectId(input);
+		const petId = toObjectId(input);
 		return await this.petService.getPet(memberId, petId);
 	}
 
@@ -47,7 +47,7 @@ export class PetResolver {
 		return await this.petService.updatePet(memberId, input);
 	}
 	//faol e’lonlarni tur, joy, e’lon turi, narx va matn bo‘yicha qidiradi.
-	@UseGuards(WithoutGuard)
+	@UseGuards(OptionalAuthGuard)
 	@Query(() => Pets)
 	public async getPets(
 		@Args('input') input: PetsInquiry,
@@ -88,7 +88,7 @@ export class PetResolver {
 	@UseGuards(AuthGuard)
 	@Mutation(() => Pet)
 	public async likeTargetPet(@Args('petId') input: string, @AuthMember('_id') memberId: Types.ObjectId): Promise<Pet> {
-		const petId = shapeIntoMongoObjectId(input);
+		const petId = toObjectId(input);
 		return await this.petService.likeTargetPet(memberId, petId);
 	}
 
@@ -115,7 +115,7 @@ export class PetResolver {
 	@UseGuards(RolesGuard)
 	@Mutation(() => Pet)
 	public async removePetByAdmin(@Args('petId') input: string): Promise<Pet> {
-		const petId = shapeIntoMongoObjectId(input);
+		const petId = toObjectId(input);
 		return await this.petService.removePetByAdmin(petId);
 	}
 }

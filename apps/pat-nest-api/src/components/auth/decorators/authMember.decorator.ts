@@ -1,7 +1,7 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import type { AuthenticatedMember } from '../auth.service';
 import type { AuthContext, AuthRequest } from '../../../libs/types/auth';
+import type { AuthenticatedMember } from '../auth.service';
 
 export const AuthMember = createParamDecorator(
 	(data: keyof AuthenticatedMember | undefined, context: ExecutionContext) => {

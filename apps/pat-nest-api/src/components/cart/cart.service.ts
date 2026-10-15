@@ -6,8 +6,9 @@ import { AddToCartInput, RemoveCartItemInput, UpdateCartItemInput } from '../../
 import { Product } from '../../libs/dto/product/product';
 import { Message } from '../../libs/enums/common.enum';
 import { ProductStatus } from '../../libs/enums/product.enum';
-import { StoredCart } from '../../libs/types/cart';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { StoredCart, StoredCartItem } from '../../libs/types/cart';
+import { toObjectId } from '../../libs/types/config';
+import { getErrorMessage } from '../../libs/utils/error.util';
 
 @Injectable()
 export class CartService {
@@ -17,17 +18,8 @@ export class CartService {
 	) {}
 
 	public async addToCart(memberId: Types.ObjectId, input: AddToCartInput): Promise<Cart> {
-		const productId = shapeIntoMongoObjectId(input.productId);
-		const product = await this.productModel
-			.findOne({
-				_id: productId,
-				productStatus: ProductStatus.ACTIVE,
-			})
-			.exec();
-		if (!product) throw new BadRequestException(Message.NO_DATA_FOUND);
-
-		const variant = product.productVariants.find((item) => item.sku === input.sku);
-		if (!variant) throw new BadRequestException(Message.NO_DATA_FOUND);
+		const productId = toObjectId(input.productId);
+		const variant = await this.findAvailableVariant(productId, input.sku);
 
 		let cart = await this.cartModel.findOne({ memberId }).exec();
 		if (!cart) {
@@ -51,7 +43,7 @@ export class CartService {
 		try {
 			await cart.save();
 		} catch (err: unknown) {
-			console.log('Error! CartService.addToCart', err instanceof Error ? err.message : String(err));
+			console.log('Error! CartService.addToCart', getErrorMessage(err));
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 
@@ -71,52 +63,25 @@ export class CartService {
 			})
 			.lean()
 			.exec();
-		const cartItems: CartItem[] = [];
-		let totalQuantity = 0;
-		let totalAmount = 0;
-
-		for (const item of cart.cartItems) {
+		const cartItems = cart.cartItems.map((item) => {
 			const product = products.find((entry) => entry._id.toString() === item.productId.toString());
-			const variant = product?.productVariants.find((entry) => entry.sku === item.sku);
-			const available = Boolean(variant && variant.stock >= item.quantity);
-			const unitPrice = variant?.price ?? 0;
-			const subtotal = available ? unitPrice * item.quantity : 0;
-
-			cartItems.push({
-				productId: item.productId,
-				sku: item.sku,
-				quantity: item.quantity,
-				productData: product ?? null,
-				unitPrice,
-				subtotal,
-				available,
-			});
-
-			totalQuantity += item.quantity;
-			totalAmount += subtotal;
-		}
+			return this.buildCartItem(item, product);
+		});
+		const totalQuantity = cartItems.reduce((total, item) => total + item.quantity, 0);
+		const totalAmount = cartItems.reduce((total, item) => total + item.subtotal, 0);
 
 		return { memberId, cartItems, totalQuantity, totalAmount };
 	}
 
 	public async updateCartItem(memberId: Types.ObjectId, input: UpdateCartItemInput): Promise<Cart> {
-		const productId = shapeIntoMongoObjectId(input.productId);
+		const productId = toObjectId(input.productId);
 		const cart = await this.cartModel.findOne({ memberId }).exec();
 		if (!cart) throw new BadRequestException(Message.NO_DATA_FOUND);
 
 		const cartItem = cart.cartItems.find((item) => item.productId.equals(productId) && item.sku === input.sku);
 		if (!cartItem) throw new BadRequestException(Message.NO_DATA_FOUND);
 
-		const product = await this.productModel
-			.findOne({
-				_id: productId,
-				productStatus: ProductStatus.ACTIVE,
-			})
-			.exec();
-		if (!product) throw new BadRequestException(Message.NO_DATA_FOUND);
-
-		const variant = product.productVariants.find((item) => item.sku === input.sku);
-		if (!variant) throw new BadRequestException(Message.NO_DATA_FOUND);
+		const variant = await this.findAvailableVariant(productId, input.sku);
 		if (input.quantity > variant.stock) {
 			throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
 		}
@@ -125,7 +90,7 @@ export class CartService {
 		try {
 			await cart.save();
 		} catch (err: unknown) {
-			console.log('Error! CartService.updateCartItem', err instanceof Error ? err.message : String(err));
+			console.log('Error! CartService.updateCartItem', getErrorMessage(err));
 			throw new BadRequestException(Message.UPDATE_FAILED);
 		}
 
@@ -133,7 +98,7 @@ export class CartService {
 	}
 
 	public async removeCartItem(memberId: Types.ObjectId, input: RemoveCartItemInput): Promise<Cart> {
-		const productId = shapeIntoMongoObjectId(input.productId);
+		const productId = toObjectId(input.productId);
 		const cart = await this.cartModel.findOne({ memberId }).exec();
 		if (!cart) throw new BadRequestException(Message.NO_DATA_FOUND);
 
@@ -144,7 +109,7 @@ export class CartService {
 		try {
 			await cart.save();
 		} catch (err: unknown) {
-			console.log('Error! CartService.removeCartItem', err instanceof Error ? err.message : String(err));
+			console.log('Error! CartService.removeCartItem', getErrorMessage(err));
 			throw new BadRequestException(Message.REMOVE_FAILED);
 		}
 
@@ -154,5 +119,34 @@ export class CartService {
 	public async clearCart(memberId: Types.ObjectId): Promise<Cart> {
 		await this.cartModel.updateOne({ memberId }, { $set: { cartItems: [] } }).exec();
 		return await this.getMyCart(memberId);
+	}
+
+	private async findAvailableVariant(
+		productId: Types.ObjectId,
+		sku: string,
+	): Promise<Product['productVariants'][number]> {
+		const product = await this.productModel.findOne({ _id: productId, productStatus: ProductStatus.ACTIVE }).exec();
+		if (!product) throw new BadRequestException(Message.NO_DATA_FOUND);
+
+		const variant = product.productVariants.find((item) => item.sku === sku);
+		if (!variant) throw new BadRequestException(Message.NO_DATA_FOUND);
+		return variant;
+	}
+
+	// Sotuvda yo'q yoki stok yetmagan mahsulot savatda ko'rinadi, ammo jami narxga qo'shilmaydi.
+	private buildCartItem(item: StoredCartItem, product: Product | undefined): CartItem {
+		const variant = product?.productVariants.find((entry) => entry.sku === item.sku);
+		const available = Boolean(variant && variant.stock >= item.quantity);
+		const unitPrice = variant?.price ?? 0;
+
+		return {
+			productId: item.productId,
+			sku: item.sku,
+			quantity: item.quantity,
+			productData: product ?? null,
+			unitPrice,
+			subtotal: available ? unitPrice * item.quantity : 0,
+			available,
+		};
 	}
 }

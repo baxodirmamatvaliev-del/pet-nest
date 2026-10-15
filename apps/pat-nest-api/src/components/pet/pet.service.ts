@@ -1,18 +1,19 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { MemberService } from '../member/member.service';
+import { FavoriteInquiry } from '../../libs/dto/like/like.input';
 import { Pet, Pets } from '../../libs/dto/pet/pet';
 import { AdminPetsInquiry, MyPetsInquiry, OrdinaryInquiry, PetInput, PetsInquiry } from '../../libs/dto/pet/pet.input';
 import { PetUpdateInput } from '../../libs/dto/pet/pet.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
-import { PetListingType, PetStatus } from '../../libs/enums/pet.enum';
-import { ViewService } from '../view/view.service';
-import { LikeService } from '../like/like.service';
-import { ViewGroup } from '../../libs/enums/view.enum';
 import { LikeGroup } from '../../libs/enums/like.enum';
-import { FavoriteInquiry } from '../../libs/dto/like/like.input';
-import { lookupAuthMemberLiked, lookupPetOwner, shapeIntoMongoObjectId } from '../../libs/types/config';
+import { PetListingType, PetStatus } from '../../libs/enums/pet.enum';
+import { ViewGroup } from '../../libs/enums/view.enum';
+import { lookupAuthMemberLiked, lookupPetOwner, toObjectId } from '../../libs/types/config';
+import { getErrorMessage } from '../../libs/utils/error.util';
+import { LikeService } from '../like/like.service';
+import { MemberService } from '../member/member.service';
+import { ViewService } from '../view/view.service';
 
 @Injectable()
 export class PetService {
@@ -26,14 +27,14 @@ export class PetService {
 	public async createPet(memberId: Types.ObjectId, input: PetInput): Promise<Pet> {
 		try {
 			const result = await this.petModel.create({ ...input, memberId });
-			await this.memberService.memberStatsEditor({
+			await this.memberService.updateMemberStats({
 				_id: memberId,
 				targetKey: 'memberPets',
 				modifier: 1,
 			});
 			return result;
 		} catch (err: unknown) {
-			console.log('Error! PetService.createPet', err instanceof Error ? err.message : String(err));
+			console.log('Error! PetService.createPet', getErrorMessage(err));
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
@@ -64,7 +65,7 @@ export class PetService {
 
 	public async updatePet(memberId: Types.ObjectId, input: PetUpdateInput): Promise<Pet> {
 		const { _id, ...changes } = input;
-		const petId = shapeIntoMongoObjectId(_id);
+		const petId = toObjectId(_id);
 		const current = await this.petModel
 			.findOne({
 				_id: petId,
@@ -99,7 +100,7 @@ export class PetService {
 		if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 
 		if (finished || changes.petStatus === PetStatus.DELETE) {
-			await this.memberService.memberStatsEditor({
+			await this.memberService.updateMemberStats({
 				_id: memberId,
 				targetKey: 'memberPets',
 				modifier: -1,
@@ -116,7 +117,7 @@ export class PetService {
 		};
 		const { search } = input;
 
-		if (search.memberId) match.memberId = shapeIntoMongoObjectId(search.memberId);
+		if (search.memberId) match.memberId = toObjectId(search.memberId);
 		if (search.typeList?.length) match.petType = { $in: search.typeList };
 		if (search.locationList?.length) match.petLocation = { $in: search.locationList };
 		if (search.listingTypeList?.length) match.petListingType = { $in: search.listingTypeList };
@@ -206,10 +207,10 @@ export class PetService {
 
 		const input = { memberId, likeRefId: petId, likeGroup: LikeGroup.PET };
 		const modifier = await this.likeService.toggleLike(input);
-		return await this.petStatsEditor({ _id: petId, targetKey: 'petLikes', modifier });
+		return await this.updatePetStats({ _id: petId, targetKey: 'petLikes', modifier });
 	}
 
-	public async petStatsEditor(input: {
+	public async updatePetStats(input: {
 		_id: Types.ObjectId;
 		targetKey: 'petLikes' | 'petComments';
 		modifier: number;
@@ -262,7 +263,7 @@ export class PetService {
 	}
 
 	public async updatePetByAdmin(input: PetUpdateInput): Promise<Pet> {
-		const petId = shapeIntoMongoObjectId(input._id);
+		const petId = toObjectId(input._id);
 		const target = await this.petModel.findById(petId).select('memberId').exec();
 		if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
 

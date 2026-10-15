@@ -15,8 +15,8 @@ import {
 	MinLength,
 	ValidateNested,
 } from 'class-validator';
-import { MemberStatus, MemberType } from '../../enums/member.enum';
 import { Direction } from '../../enums/common.enum';
+import { MemberStatus, MemberType } from '../../enums/member.enum';
 import { availableAgentsSorts, availableMemberSorts } from '../../types/config';
 
 @InputType()

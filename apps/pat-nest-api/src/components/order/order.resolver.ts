@@ -5,7 +5,7 @@ import { Order, Orders } from '../../libs/dto/order/order';
 import { AdminOrdersInquiry, CreateOrderInput, MyOrdersInquiry } from '../../libs/dto/order/order.input';
 import { OrderStatusUpdateInput } from '../../libs/dto/order/order.update';
 import { MemberType } from '../../libs/enums/member.enum';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { toObjectId } from '../../libs/types/config';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -36,7 +36,7 @@ export class OrderResolver {
 	@UseGuards(AuthGuard)
 	@Query(() => Order)
 	public async getOrder(@Args('orderId') input: string, @AuthMember('_id') memberId: Types.ObjectId): Promise<Order> {
-		const orderId = shapeIntoMongoObjectId(input);
+		const orderId = toObjectId(input);
 		return await this.orderService.getOrder(memberId, orderId);
 	}
 	@UseGuards(AuthGuard)
@@ -45,7 +45,7 @@ export class OrderResolver {
 		@Args('orderId') input: string,
 		@AuthMember('_id') memberId: Types.ObjectId,
 	): Promise<Order> {
-		const orderId = shapeIntoMongoObjectId(input);
+		const orderId = toObjectId(input);
 		return await this.orderService.cancelOrder(memberId, orderId);
 	}
 

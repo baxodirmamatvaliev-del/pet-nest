@@ -10,13 +10,14 @@ import { createWriteStream, promises as fs } from 'fs';
 import { extname, join } from 'path';
 import { Readable, Transform } from 'stream';
 import { pipeline } from 'stream/promises';
-import { Message } from '../../libs/enums/common.enum';
 import {
 	ALLOWED_IMAGE_EXTENSIONS,
 	ALLOWED_UPLOAD_TARGETS,
 	MAX_IMAGE_FILE_SIZE,
 	MAX_IMAGE_FILES,
 } from '../../libs/config/image-upload.config';
+import { Message } from '../../libs/enums/common.enum';
+import { getErrorMessage } from '../../libs/utils/error.util';
 
 export interface FileUpload {
 	filename: string;
@@ -97,10 +98,7 @@ export class ImageUploadService {
 				throw new PayloadTooLargeException(Message.IMAGE_TOO_LARGE);
 			}
 
-			console.log(
-				'Error! ImageUploadService.imageUploader',
-				err instanceof Error ? (err instanceof Error ? err.message : String(err)) : err,
-			);
+			console.log('Error! ImageUploadService.imageUploader', err instanceof Error ? getErrorMessage(err) : err);
 			throw new InternalServerErrorException(Message.UPLOAD_FAILED);
 		}
 	}

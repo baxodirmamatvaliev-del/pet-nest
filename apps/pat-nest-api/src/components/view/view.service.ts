@@ -1,15 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { View } from '../../libs/dto/view/view';
-import { OrdinaryInquiry } from '../../libs/dto/pet/pet.input';
 import { Pets } from '../../libs/dto/pet/pet';
+import { OrdinaryInquiry } from '../../libs/dto/pet/pet.input';
 import { Products } from '../../libs/dto/product/product';
-import { ViewGroup } from '../../libs/enums/view.enum';
+import { View } from '../../libs/dto/view/view';
+import { LikeGroup } from '../../libs/enums/like.enum';
 import { PetStatus } from '../../libs/enums/pet.enum';
 import { ProductStatus } from '../../libs/enums/product.enum';
-import { LikeGroup } from '../../libs/enums/like.enum';
+import { ViewGroup } from '../../libs/enums/view.enum';
 import { lookupAuthMemberLiked, lookupPetOwner } from '../../libs/types/config';
+import { isDuplicateKeyError } from '../../libs/utils/error.util';
 
 @Injectable()
 export class ViewService {
@@ -23,7 +24,7 @@ export class ViewService {
 			return await this.viewModel.create(input);
 		} catch (err: unknown) {
 			// Bir vaqtda takroriy so‘rov kelsa, ko‘rish ikkinchi marta hisoblanmaydi.
-			if (err !== null && typeof err === 'object' && 'code' in err && err.code === 11000) return null;
+			if (isDuplicateKeyError(err)) return null;
 			throw err;
 		}
 	}

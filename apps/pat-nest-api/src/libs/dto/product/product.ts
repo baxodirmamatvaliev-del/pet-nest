@@ -1,8 +1,8 @@
 import { Field, Float, ID, Int, ObjectType } from '@nestjs/graphql';
 import type { Types } from 'mongoose';
 import { ProductCategory, ProductStatus, ProductType } from '../../enums/product.enum';
-import { TotalCounter } from '../member/member';
 import { MeLiked } from '../like/like';
+import { TotalCounter } from '../member/member';
 
 @ObjectType()
 export class ProductVariant {

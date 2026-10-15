@@ -1,7 +1,7 @@
 import { Controller, Get, Logger } from '@nestjs/common';
 import { Cron, Timeout } from '@nestjs/schedule';
-import { PatBatchService } from './pat-batch.service';
 import { BATCH_ROLLBACK, BATCH_TIME_ZONE, BATCH_TOP_AGENTS, BATCH_TOP_PETS, BATCH_TOP_PRODUCTS } from './lib/config';
+import { PatBatchService } from './pat-batch.service';
 
 /****************
 Scheduled Batch Processing

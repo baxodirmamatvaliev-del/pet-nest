@@ -2,14 +2,15 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
 import { OrderItem } from '../../libs/dto/order/order';
-import { CreatePaymentInput, ConfirmPaymentInput } from '../../libs/dto/payment/payment.input';
 import { Payment } from '../../libs/dto/payment/payment';
+import { ConfirmPaymentInput, CreatePaymentInput } from '../../libs/dto/payment/payment.input';
 import { Product } from '../../libs/dto/product/product';
 import { Message } from '../../libs/enums/common.enum';
 import { OrderStatus } from '../../libs/enums/order.enum';
 import { PaymentStatus } from '../../libs/enums/payment.enum';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { toObjectId } from '../../libs/types/config';
 import { StoredOrder } from '../../libs/types/order';
+import { getErrorMessage } from '../../libs/utils/error.util';
 import { OrderService } from '../order/order.service';
 
 @Injectable()
@@ -22,7 +23,7 @@ export class PaymentService {
 	) {}
 
 	public async createPayment(memberId: Types.ObjectId, input: CreatePaymentInput): Promise<Payment> {
-		const orderId = shapeIntoMongoObjectId(input.orderId);
+		const orderId = toObjectId(input.orderId);
 		const existingPayment = await this.paymentModel.findOne({ orderId, memberId }).exec();
 		if (existingPayment) return existingPayment;
 
@@ -44,7 +45,7 @@ export class PaymentService {
 				paymentAmount: order.totalAmount,
 			});
 		} catch (err: unknown) {
-			console.log('Error! PaymentService.createPayment', err instanceof Error ? err.message : String(err));
+			console.log('Error! PaymentService.createPayment', getErrorMessage(err));
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
@@ -87,13 +88,13 @@ export class PaymentService {
 				return payment;
 			});
 		} catch (err: unknown) {
-			console.log('Error! PaymentService.cancelPayment', err instanceof Error ? err.message : String(err));
+			console.log('Error! PaymentService.cancelPayment', getErrorMessage(err));
 			throw new BadRequestException(Message.UPDATE_FAILED);
 		}
 	}
 
 	public async confirmPayment(input: ConfirmPaymentInput): Promise<Payment> {
-		const paymentId = shapeIntoMongoObjectId(input.paymentId);
+		const paymentId = toObjectId(input.paymentId);
 		const session = await this.paymentModel.db.startSession();
 		session.startTransaction();
 
@@ -129,7 +130,7 @@ export class PaymentService {
 			return payment;
 		} catch (err: unknown) {
 			if (session.inTransaction()) await session.abortTransaction();
-			console.log('Error! PaymentService.confirmPayment', err instanceof Error ? err.message : String(err));
+			console.log('Error! PaymentService.confirmPayment', getErrorMessage(err));
 			if (err instanceof BadRequestException) throw err;
 			throw new BadRequestException(Message.UPDATE_FAILED);
 		} finally {

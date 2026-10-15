@@ -1,10 +1,10 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Types } from 'mongoose';
-import { ConfirmPaymentInput, CreatePaymentInput } from '../../libs/dto/payment/payment.input';
 import { Payment } from '../../libs/dto/payment/payment';
+import { ConfirmPaymentInput, CreatePaymentInput } from '../../libs/dto/payment/payment.input';
 import { MemberType } from '../../libs/enums/member.enum';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { toObjectId } from '../../libs/types/config';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -32,7 +32,7 @@ export class PaymentResolver {
 		@Args('paymentId') input: string,
 		@AuthMember('_id') memberId: Types.ObjectId,
 	): Promise<Payment> {
-		const paymentId = shapeIntoMongoObjectId(input);
+		const paymentId = toObjectId(input);
 		return await this.paymentService.getPayment(memberId, paymentId);
 	}
 
@@ -40,7 +40,7 @@ export class PaymentResolver {
 	@UseGuards(RolesGuard)
 	@Query(() => Payment, { nullable: true })
 	public async getPaymentByOrderByAdmin(@Args('orderId') input: string): Promise<Payment | null> {
-		const orderId = shapeIntoMongoObjectId(input);
+		const orderId = toObjectId(input);
 		return await this.paymentService.getPaymentByOrderByAdmin(orderId);
 	}
 
@@ -51,7 +51,7 @@ export class PaymentResolver {
 		@Args('paymentId') input: string,
 		@AuthMember('_id') memberId: Types.ObjectId,
 	): Promise<Payment> {
-		const paymentId = shapeIntoMongoObjectId(input);
+		const paymentId = toObjectId(input);
 		return await this.paymentService.cancelPayment(memberId, paymentId);
 	}
 

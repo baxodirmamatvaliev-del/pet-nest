@@ -6,10 +6,11 @@ export const availableAgentsSorts = ['createdAt', 'updatedAt', 'memberLikes', 'm
 export const availablePetSorts = ['createdAt', 'updatedAt', 'petPrice', 'petLikes', 'petViews', 'petRank'];
 export const availableCommentSorts = ['createdAt', 'updatedAt'];
 
-export const shapeIntoMongoObjectId = (target: string | Types.ObjectId): Types.ObjectId => {
+export const toObjectId = (target: string | Types.ObjectId): Types.ObjectId => {
 	return typeof target === 'string' ? new Types.ObjectId(target) : target;
 };
 
+// Ro'yxatdagi obyektga joriy foydalanuvchi like bosganini meLiked orqali qo'shamiz.
 export const lookupAuthMemberLiked = (
 	memberId: Types.ObjectId | null,
 	targetRefId: string = '$_id',
@@ -17,20 +18,19 @@ export const lookupAuthMemberLiked = (
 ) => {
 	return {
 		$lookup: {
-			//MongoDB’da boshqa collection bilan bog‘lanish boshlanadi
-			from: 'likes', //Ma’lumot likes collection ichidan qidiriladi.
+			from: 'likes',
 			let: {
-				localLikeRefId: targetRefId, //qaysi obyekt tekshirilmoqda
-				localMemberId: memberId, //qaysi foydalanuvchi tekshirilmoqda
-				localMyFavorite: true, //like topilsa qaytariladigan true qiymati
+				localLikeRefId: targetRefId,
+				localMemberId: memberId,
+				localMyFavorite: true,
 			},
 			pipeline: [
 				{
 					$match: {
 						$expr: {
 							$and: [
-								{ $eq: ['$likeRefId', '$$localLikeRefId'] }, //Bu like yozuvini ikki shart bilan qidiradi
-								{ $eq: ['$memberId', '$$localMemberId'] }, //kkalasi ham mos kelsa, demak shu foydalanuvchi shu obyektga like bosgan.
+								{ $eq: ['$likeRefId', '$$localLikeRefId'] },
+								{ $eq: ['$memberId', '$$localMemberId'] },
 								...(likeGroup ? [{ $eq: ['$likeGroup', likeGroup] }] : []),
 							],
 						},
@@ -41,8 +41,8 @@ export const lookupAuthMemberLiked = (
 						_id: 0,
 						memberId: 1,
 						likeRefId: 1,
-						myFavorite: '$$localMyFavorite', //Frontendga foydalanuvchi shu obyektga like bosganini ko‘rsatadigan ma’lumot beradi:
-					}, //Shu orqali yurakcha qizil yoki faol holatda ko‘rsatiladi
+						myFavorite: '$$localMyFavorite',
+					},
 				},
 			],
 			as: 'meLiked',
@@ -50,6 +50,7 @@ export const lookupAuthMemberLiked = (
 	};
 };
 
+// Egaga oid ma'lumotlarni ulaymiz; parol aggregation natijasiga kirmaydi.
 export const lookupPetOwner = {
 	$lookup: {
 		from: 'members',
@@ -66,6 +67,7 @@ interface LookupAuthMemberFollowed {
 	followingId: string;
 }
 
+// Joriy foydalanuvchi ushbu a'zoga obuna bo'lganini meFollowed orqali qo'shamiz.
 export const lookupAuthMemberFollowed = (input: LookupAuthMemberFollowed) => {
 	const { followerId, followingId } = input;
 	return {

@@ -6,6 +6,7 @@ import { NotificationsInquiry } from '../../libs/dto/notification/notification.i
 import { Message } from '../../libs/enums/common.enum';
 import { NotificationStatus } from '../../libs/enums/notification.enum';
 import { CreateNotification } from '../../libs/types/notification';
+import { getErrorMessage } from '../../libs/utils/error.util';
 import { NotificationGateway } from '../../socket/notification.gateway';
 
 @Injectable()
@@ -13,16 +14,16 @@ export class NotificationService {
 	constructor(
 		@InjectModel('Notification') private readonly notificationModel: Model<Notification>,
 		// Bazaga yozilgan bildirishnomani qabul qiluvchiga Socket.IO orqali darhol yuboramiz.
-		private readonly socketGateway: NotificationGateway,
+		private readonly notificationGateway: NotificationGateway,
 	) {}
 
 	public async createNotification(input: CreateNotification): Promise<Notification> {
 		try {
 			const notification = await this.notificationModel.create(input);
-			this.socketGateway.sendNotification(input.receiverId, notification);
+			this.notificationGateway.sendNotification(input.receiverId, notification);
 			return notification;
 		} catch (err: unknown) {
-			console.log('Error! NotificationService.createNotification', err instanceof Error ? err.message : String(err));
+			console.log('Error! NotificationService.createNotification', getErrorMessage(err));
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}

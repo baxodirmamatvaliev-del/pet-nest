@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage, Types } from 'mongoose';
+import { FavoriteInquiry } from '../../libs/dto/like/like.input';
+import { OrdinaryInquiry } from '../../libs/dto/pet/pet.input';
 import { Product, Products } from '../../libs/dto/product/product';
 import {
 	AdminProductsInquiry,
@@ -9,14 +11,13 @@ import {
 	ProductSearch,
 	ProductsInquiry,
 } from '../../libs/dto/product/product.input';
-import { FavoriteInquiry } from '../../libs/dto/like/like.input';
-import { OrdinaryInquiry } from '../../libs/dto/pet/pet.input';
 import { ProductUpdateInput } from '../../libs/dto/product/product.update';
 import { Direction, Message } from '../../libs/enums/common.enum';
-import { ProductStatus } from '../../libs/enums/product.enum';
 import { LikeGroup } from '../../libs/enums/like.enum';
+import { ProductStatus } from '../../libs/enums/product.enum';
 import { ViewGroup } from '../../libs/enums/view.enum';
-import { lookupAuthMemberLiked, shapeIntoMongoObjectId } from '../../libs/types/config';
+import { lookupAuthMemberLiked, toObjectId } from '../../libs/types/config';
+import { getErrorMessage } from '../../libs/utils/error.util';
 import { LikeService } from '../like/like.service';
 import { ViewService } from '../view/view.service';
 
@@ -32,7 +33,7 @@ export class ProductService {
 		try {
 			return await this.productModel.create({ ...input, memberId });
 		} catch (err: unknown) {
-			console.log('Error! ProductService.createProduct', err instanceof Error ? err.message : String(err));
+			console.log('Error! ProductService.createProduct', getErrorMessage(err));
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
@@ -71,7 +72,7 @@ export class ProductService {
 		const match: Record<string, unknown> = { productStatus: ProductStatus.ACTIVE };
 		const { categoryList, typeList, text, memberId: targetMemberId } = input.search;
 
-		if (targetMemberId) match.memberId = shapeIntoMongoObjectId(targetMemberId);
+		if (targetMemberId) match.memberId = toObjectId(targetMemberId);
 		this.applyProductFilters(match, { categoryList, typeList, text });
 
 		return this.findProducts(match, input, [lookupAuthMemberLiked(memberId, '$_id', LikeGroup.PRODUCT)]);
@@ -121,7 +122,7 @@ export class ProductService {
 
 	public async updateProduct(memberId: Types.ObjectId, input: ProductUpdateInput): Promise<Product> {
 		const { _id, ...changes } = input;
-		const productId = shapeIntoMongoObjectId(_id);
+		const productId = toObjectId(_id);
 		if (changes.productStatus === ProductStatus.DELETE) {
 			throw new BadRequestException(Message.NOT_ALLOWED_REQUEST);
 		}
@@ -139,7 +140,7 @@ export class ProductService {
 			return result;
 		} catch (err: unknown) {
 			if (err instanceof InternalServerErrorException) throw err;
-			console.log('Error! ProductService.updateProduct', err instanceof Error ? err.message : String(err));
+			console.log('Error! ProductService.updateProduct', getErrorMessage(err));
 			throw new BadRequestException(Message.UPDATE_FAILED);
 		}
 	}
@@ -169,7 +170,7 @@ export class ProductService {
 
 	public async updateProductByAdmin(input: ProductUpdateInput): Promise<Product> {
 		const { _id, ...changes } = input;
-		const productId = shapeIntoMongoObjectId(_id);
+		const productId = toObjectId(_id);
 		const update: Record<string, unknown> = { $set: changes };
 
 		if (changes.productStatus === ProductStatus.DELETE) {
@@ -187,7 +188,7 @@ export class ProductService {
 			return result;
 		} catch (err: unknown) {
 			if (err instanceof InternalServerErrorException) throw err;
-			console.log('Error! ProductService.updateProductByAdmin', err instanceof Error ? err.message : String(err));
+			console.log('Error! ProductService.updateProductByAdmin', getErrorMessage(err));
 			throw new BadRequestException(Message.UPDATE_FAILED);
 		}
 	}

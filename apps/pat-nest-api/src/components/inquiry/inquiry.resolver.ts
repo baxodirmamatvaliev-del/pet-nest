@@ -8,14 +8,14 @@ import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { WithoutGuard } from '../auth/guards/without.guard';
+import { OptionalAuthGuard } from '../auth/guards/optional-auth.guard';
 import { InquiryService } from './inquiry.service';
 
 @Resolver(() => Inquiry)
 export class InquiryResolver {
 	constructor(private readonly inquiryService: InquiryService) {}
 
-	@UseGuards(WithoutGuard)
+	@UseGuards(OptionalAuthGuard)
 	@Query(() => [SupportRecipient])
 	public async getSupportRecipients(): Promise<SupportRecipient[]> {
 		return await this.inquiryService.getSupportRecipients();

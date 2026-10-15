@@ -1,5 +1,8 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Types } from 'mongoose';
+import { FavoriteInquiry } from '../../libs/dto/like/like.input';
+import { OrdinaryInquiry } from '../../libs/dto/pet/pet.input';
 import { Product, Products } from '../../libs/dto/product/product';
 import {
 	AdminProductsInquiry,
@@ -7,17 +10,14 @@ import {
 	ProductInput,
 	ProductsInquiry,
 } from '../../libs/dto/product/product.input';
-import { FavoriteInquiry } from '../../libs/dto/like/like.input';
-import { OrdinaryInquiry } from '../../libs/dto/pet/pet.input';
 import { ProductUpdateInput } from '../../libs/dto/product/product.update';
 import { MemberType } from '../../libs/enums/member.enum';
+import { toObjectId } from '../../libs/types/config';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
-import { Types } from 'mongoose';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { RolesGuard } from '../auth/guards/roles.guard';
 import { AuthGuard } from '../auth/guards/auth.guard';
-import { WithoutGuard } from '../auth/guards/without.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { OptionalAuthGuard } from '../auth/guards/optional-auth.guard';
 import { ProductService } from './product.service';
 
 @Resolver(() => Product)
@@ -34,16 +34,16 @@ export class ProductResolver {
 		return await this.productService.createProduct(memberId, input);
 	}
 
-	@UseGuards(WithoutGuard)
+	@UseGuards(OptionalAuthGuard)
 	@Query(() => Product)
 	public async getProduct(
 		@Args('productId') input: string,
 		@AuthMember('_id') memberId: Types.ObjectId | null,
 	): Promise<Product> {
-		const productId = shapeIntoMongoObjectId(input);
+		const productId = toObjectId(input);
 		return await this.productService.getProduct(memberId, productId);
 	}
-	@UseGuards(WithoutGuard)
+	@UseGuards(OptionalAuthGuard)
 	@Query(() => Products)
 	public async getProducts(
 		@Args('input') input: ProductsInquiry,
@@ -76,7 +76,7 @@ export class ProductResolver {
 		@Args('productId') input: string,
 		@AuthMember('_id') memberId: Types.ObjectId,
 	): Promise<Product> {
-		return await this.productService.likeTargetProduct(memberId, shapeIntoMongoObjectId(input));
+		return await this.productService.likeTargetProduct(memberId, toObjectId(input));
 	}
 
 	// AGENT yoki ADMIN o‘zi yaratgan mahsulotlarni, jumladan yashirilganlarini ham ko‘radi.
@@ -108,7 +108,7 @@ export class ProductResolver {
 		@Args('productId') input: string,
 		@AuthMember('_id') memberId: Types.ObjectId,
 	): Promise<Product> {
-		const productId = shapeIntoMongoObjectId(input);
+		const productId = toObjectId(input);
 		return await this.productService.removeProduct(memberId, productId);
 	}
 	// (ADMIN NAZORAT) ADMIN barcha holatdagi mahsulotlarni, jumladan o‘chirilganlarini ham, filtr va sahifalash bilan ko‘radi.

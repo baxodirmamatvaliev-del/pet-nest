@@ -1,17 +1,17 @@
-import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { SocketModule } from './socket/socket.module';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
-import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver } from '@nestjs/apollo';
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { GraphQLModule } from '@nestjs/graphql';
 import { ThrottlerModule } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
+import { AppController } from './app.controller';
 import { AppResolver } from './app.resolver';
+import { AppService } from './app.service';
 import { ComponentsModule } from './components/components.module';
 import { DatabaseModule } from './database/database.module';
 import { GraphqlThrottlerGuard } from './libs/guards/graphql-throttler.guard';
-import type { Request, Response } from 'express';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
 	imports: [

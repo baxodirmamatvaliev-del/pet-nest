@@ -1,19 +1,20 @@
 import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { AuthService } from '../auth/auth.service';
-import { AgentsInquiry, LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
-import { AuthPayload, Member, Members } from '../../libs/dto/member/member';
-import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
-import { Direction, Message } from '../../libs/enums/common.enum';
-import { MemberUpdateByAdminInput, MemberUpdateInput } from '../../libs/dto/member/member.update';
-import { lookupAuthMemberLiked, shapeIntoMongoObjectId } from '../../libs/types/config';
-import { ViewService } from '../view/view.service';
-import { LikeService } from '../like/like.service';
-import { ViewGroup } from '../../libs/enums/view.enum';
-import { LikeGroup } from '../../libs/enums/like.enum';
 import { Follow, MeFollowed } from '../../libs/dto/follow/follow';
 import { FavoriteInquiry } from '../../libs/dto/like/like.input';
+import { AuthPayload, Member, Members } from '../../libs/dto/member/member';
+import { AgentsInquiry, LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
+import { MemberUpdateByAdminInput, MemberUpdateInput } from '../../libs/dto/member/member.update';
+import { Direction, Message } from '../../libs/enums/common.enum';
+import { LikeGroup } from '../../libs/enums/like.enum';
+import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
+import { ViewGroup } from '../../libs/enums/view.enum';
+import { lookupAuthMemberLiked, toObjectId } from '../../libs/types/config';
+import { getErrorMessage, isDuplicateKeyError } from '../../libs/utils/error.util';
+import { AuthService } from '../auth/auth.service';
+import { LikeService } from '../like/like.service';
+import { ViewService } from '../view/view.service';
 
 @Injectable()
 export class MemberService {
@@ -38,7 +39,7 @@ export class MemberService {
 			member.accessToken = await this.authService.createToken(member);
 			return member;
 		} catch (err: unknown) {
-			console.log('Error! Service.model', err instanceof Error ? err.message : String(err));
+			console.log('Error! Service.model', getErrorMessage(err));
 			throw new BadRequestException(Message.USED_MEMBER_NICK_OR_PHONE);
 		}
 	}
@@ -101,7 +102,7 @@ export class MemberService {
 		const input = { memberId, likeRefId, likeGroup: LikeGroup.MEMBER };
 		const modifier = await this.likeService.toggleLike(input);
 
-		return await this.memberStatsEditor({
+		return await this.updateMemberStats({
 			_id: likeRefId,
 			targetKey: 'memberLikes',
 			modifier,
@@ -112,7 +113,7 @@ export class MemberService {
 		return await this.likeService.getFavoriteMembers(memberId, input);
 	}
 
-	public async memberStatsEditor(input: {
+	public async updateMemberStats(input: {
 		_id: Types.ObjectId;
 		targetKey: 'memberLikes' | 'memberPets' | 'memberComments' | 'memberFollowers' | 'memberFollowings';
 		modifier: number;
@@ -167,7 +168,7 @@ export class MemberService {
 		const { memberStatus, memberType, text } = input.search;
 		const match: { memberStatus?: MemberStatus; memberType?: MemberType; memberNick?: RegExp } = {};
 		const sort: Record<string, 1 | -1> = {
-			// Eng yangi a’zolar birinchi. & (1) desak, eng kam like olgan birinchi chiqadi:Sami → Ali → Vali & (2) desak, eng ko‘p like olgan birinchi chiqadi:Vali → Ali → Sami
+			// _id bir xil qiymatli natijalar uchun barqaror saralashni ta'minlaydi.
 			[input.sort ?? 'createdAt']: input.direction ?? Direction.DESC,
 			_id: input.direction ?? Direction.DESC,
 		};
@@ -199,7 +200,7 @@ export class MemberService {
 
 	public async updateMemberByAdmin(input: MemberUpdateByAdminInput): Promise<Member> {
 		const { _id, ...changes } = input;
-		const memberId = shapeIntoMongoObjectId(_id);
+		const memberId = toObjectId(_id);
 
 		if (changes.memberPassword !== undefined) {
 			changes.memberPassword = await this.authService.hashPassword(changes.memberPassword);
@@ -213,9 +214,8 @@ export class MemberService {
 			if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 			return result;
 		} catch (err: unknown) {
-			console.log('Error! MemberService.updateMemberByAdmin', err instanceof Error ? err.message : String(err));
-			if (err !== null && typeof err === 'object' && 'code' in err && err.code === 11000)
-				throw new BadRequestException(Message.USED_MEMBER_NICK_OR_PHONE);
+			console.log('Error! MemberService.updateMemberByAdmin', getErrorMessage(err));
+			if (isDuplicateKeyError(err)) throw new BadRequestException(Message.USED_MEMBER_NICK_OR_PHONE);
 			throw err;
 		}
 	}

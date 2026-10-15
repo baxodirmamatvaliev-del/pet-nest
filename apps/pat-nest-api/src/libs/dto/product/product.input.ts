@@ -17,8 +17,8 @@ import {
 	Min,
 	ValidateNested,
 } from 'class-validator';
-import { ProductCategory, ProductStatus, ProductType } from '../../enums/product.enum';
 import { Direction } from '../../enums/common.enum';
+import { ProductCategory, ProductStatus, ProductType } from '../../enums/product.enum';
 
 const availableProductSorts = ['createdAt', 'productName', 'productRating', 'productSold', 'productRank'];
 

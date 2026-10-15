@@ -1,11 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { getConnectionToken } from '@nestjs/mongoose';
+import { WsAdapter } from '@nestjs/platform-ws';
+import { Test, TestingModule } from '@nestjs/testing';
+import { Connection, createConnection } from 'mongoose';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { getConnectionToken } from '@nestjs/mongoose';
-import { createConnection, Connection } from 'mongoose';
-import { WsAdapter } from '@nestjs/platform-ws';
 
 // Upload oqimini unit testlar tekshiradi; bu yerda ESM scalar o'rniga GraphQL turi beriladi.
 jest.mock('graphql-upload/GraphQLUpload.mjs', () => {

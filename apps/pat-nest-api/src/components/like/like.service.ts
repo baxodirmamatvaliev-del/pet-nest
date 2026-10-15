@@ -12,6 +12,7 @@ import { MemberStatus } from '../../libs/enums/member.enum';
 import { PetStatus } from '../../libs/enums/pet.enum';
 import { ProductStatus } from '../../libs/enums/product.enum';
 import { lookupAuthMemberFollowed, lookupAuthMemberLiked, lookupPetOwner } from '../../libs/types/config';
+import { getErrorMessage } from '../../libs/utils/error.util';
 
 @Injectable()
 export class LikeService {
@@ -29,7 +30,7 @@ export class LikeService {
 			await this.likeModel.create(input);
 			return 1;
 		} catch (err: unknown) {
-			console.log('Error! LikeService.toggleLike', err instanceof Error ? err.message : String(err));
+			console.log('Error! LikeService.toggleLike', getErrorMessage(err));
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}

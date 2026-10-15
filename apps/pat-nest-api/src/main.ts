@@ -1,14 +1,14 @@
-import { WsAdapter } from '@nestjs/platform-ws';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { LoggingInterceptor } from './libs/interceptor/Logging.interceptor';
-import graphqlUploadExpress from 'graphql-upload/graphqlUploadExpress.mjs';
+import { NestFactory } from '@nestjs/core';
+import { WsAdapter } from '@nestjs/platform-ws';
+import type { Express } from 'express';
 import { static as serveStatic } from 'express';
+import graphqlUploadExpress from 'graphql-upload/graphqlUploadExpress.mjs';
 import { join } from 'path';
+import { AppModule } from './app.module';
 import { corsOriginHandler, validateEnvironment } from './libs/config/environment';
 import { MAX_IMAGE_FILE_SIZE, MAX_IMAGE_FILES } from './libs/config/image-upload.config';
-import type { Express } from 'express';
+import { LoggingInterceptor } from './libs/interceptor/Logging.interceptor';
 
 async function bootstrap() {
 	validateEnvironment();

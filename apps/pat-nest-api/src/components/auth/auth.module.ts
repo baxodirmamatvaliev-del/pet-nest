@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
-import RefreshSessionSchema from '../../schemas/RefreshSession.model';
 import MemberSchema from '../../schemas/Member.model';
+import RefreshSessionSchema from '../../schemas/RefreshSession.model';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './guards/auth.guard';
 import { RolesGuard } from './guards/roles.guard';
-import { WithoutGuard } from './guards/without.guard';
+import { OptionalAuthGuard } from './guards/optional-auth.guard';
 
 @Module({
 	imports: [
@@ -27,7 +27,7 @@ import { WithoutGuard } from './guards/without.guard';
 			},
 		}),
 	],
-	providers: [AuthService, AuthGuard, RolesGuard, WithoutGuard],
-	exports: [AuthService, AuthGuard, RolesGuard, WithoutGuard],
+	providers: [AuthService, AuthGuard, RolesGuard, OptionalAuthGuard],
+	exports: [AuthService, AuthGuard, RolesGuard, OptionalAuthGuard],
 })
 export class AuthModule {}

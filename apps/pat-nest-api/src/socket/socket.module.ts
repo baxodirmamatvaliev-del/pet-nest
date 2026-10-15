@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { SocketGateway } from './socket.gateway';
-import { NotificationGateway } from './notification.gateway';
 import { AuthModule } from '../components/auth/auth.module';
+import { NotificationGateway } from './notification.gateway';
+import { SocketGateway } from './socket.gateway';
 
 @Module({
 	// Chat va bildirishnoma ulanishlaridagi JWTni tekshirish uchun AuthService olamiz.

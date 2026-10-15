@@ -1,11 +1,11 @@
-import 'reflect-metadata';
 import { ValidationPipe, type Type } from '@nestjs/common';
+import 'reflect-metadata';
 import { Readable } from 'stream';
-import { MemberResolver } from './member.resolver';
 import { AuthService } from '../auth/auth.service';
-import { MemberService } from './member.service';
-import { ImageUploadService } from './image-upload.service';
 import type { FileUpload } from './image-upload.service';
+import { ImageUploadService } from './image-upload.service';
+import { MemberResolver } from './member.resolver';
+import { MemberService } from './member.service';
 
 // The upload scalar is ESM; these tests exercise Nest's runtime argument metadata.
 jest.mock('graphql-upload/GraphQLUpload.mjs', () => ({

@@ -1,6 +1,6 @@
 import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from '@nestjs/common';
-import type { GraphQLResolveInfo } from 'graphql';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import type { GraphQLResolveInfo } from 'graphql';
 import { Observable, tap } from 'rxjs';
 
 @Injectable()

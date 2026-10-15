@@ -1,12 +1,12 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Types } from 'mongoose';
-import { FollowInput, FollowInquiry } from '../../libs/dto/follow/follow.input';
 import { Follow, Followers, Followings } from '../../libs/dto/follow/follow';
-import { shapeIntoMongoObjectId } from '../../libs/types/config';
+import { FollowInput, FollowInquiry } from '../../libs/dto/follow/follow.input';
+import { toObjectId } from '../../libs/types/config';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { AuthGuard } from '../auth/guards/auth.guard';
-import { WithoutGuard } from '../auth/guards/without.guard';
+import { OptionalAuthGuard } from '../auth/guards/optional-auth.guard';
 import { FollowService } from './follow.service';
 
 @Resolver(() => Follow)
@@ -19,7 +19,7 @@ export class FollowResolver {
 		@Args('input') input: FollowInput,
 		@AuthMember('_id') memberId: Types.ObjectId,
 	): Promise<Follow> {
-		const followingId = shapeIntoMongoObjectId(input.followingId);
+		const followingId = toObjectId(input.followingId);
 		return await this.followService.subscribe(memberId, followingId);
 	}
 
@@ -29,12 +29,12 @@ export class FollowResolver {
 		@Args('input') input: FollowInput,
 		@AuthMember('_id') memberId: Types.ObjectId,
 	): Promise<Follow> {
-		const followingId = shapeIntoMongoObjectId(input.followingId);
+		const followingId = toObjectId(input.followingId);
 		return await this.followService.unsubscribe(memberId, followingId);
 	}
 
 	//— masalan, Ali kimlarni kuzatayotganini ko‘rsatadi.
-	@UseGuards(WithoutGuard)
+	@UseGuards(OptionalAuthGuard)
 	@Query(() => Followings)
 	public async getMemberFollowings(
 		@Args('input') input: FollowInquiry,
@@ -44,7 +44,7 @@ export class FollowResolver {
 	}
 
 	//— masalan, Valini kimlar kuzatayotganini ko‘rsatadi.
-	@UseGuards(WithoutGuard)
+	@UseGuards(OptionalAuthGuard)
 	@Query(() => Followers)
 	public async getMemberFollowers(
 		@Args('input') input: FollowInquiry,

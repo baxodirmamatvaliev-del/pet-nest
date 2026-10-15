@@ -16,8 +16,8 @@ import {
 	Min,
 	ValidateNested,
 } from 'class-validator';
-import { PetGender, PetListingType, PetLocation, PetStatus, PetType } from '../../enums/pet.enum';
 import { Direction } from '../../enums/common.enum';
+import { PetGender, PetListingType, PetLocation, PetStatus, PetType } from '../../enums/pet.enum';
 import { availablePetSorts } from '../../types/config';
 
 @InputType()

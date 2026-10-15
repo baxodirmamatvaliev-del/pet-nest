@@ -1,13 +1,13 @@
+import type { OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import type { IncomingMessage, Server as HttpServer } from 'http';
-import type { Duplex } from 'stream';
-import type { OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
+import type { Server as HttpServer, IncomingMessage } from 'http';
 import { Types } from 'mongoose';
 import { Server, Socket } from 'socket.io';
+import type { Duplex } from 'stream';
 import { AuthService } from '../components/auth/auth.service';
-import { Notification } from '../libs/dto/notification/notification';
 import { corsOriginHandler } from '../libs/config/environment';
+import { Notification } from '../libs/dto/notification/notification';
 
 type NotificationEvents = { notification: (notification: Notification) => void };
 type NotificationData = { memberId?: string };

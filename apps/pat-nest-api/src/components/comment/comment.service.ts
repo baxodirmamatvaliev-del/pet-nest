@@ -3,18 +3,19 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { BoardArticle } from '../../libs/dto/board-article/board-article';
 import { Comment, Comments } from '../../libs/dto/comment/comment';
-import { Product } from '../../libs/dto/product/product';
 import { AdminCommentsInquiry, CommentInput, CommentsInquiry } from '../../libs/dto/comment/comment.input';
 import { CommentUpdateInput } from '../../libs/dto/comment/comment.update';
+import { Product } from '../../libs/dto/product/product';
 import { BoardArticleStatus } from '../../libs/enums/board-article.enum';
 import { CommentGroup, CommentStatus } from '../../libs/enums/comment.enum';
 import { Direction, Message } from '../../libs/enums/common.enum';
-import { ProductStatus } from '../../libs/enums/product.enum';
 import { NotificationGroup, NotificationType } from '../../libs/enums/notification.enum';
-import { lookupMember, shapeIntoMongoObjectId } from '../../libs/types/config';
+import { ProductStatus } from '../../libs/enums/product.enum';
+import { lookupMember, toObjectId } from '../../libs/types/config';
+import { getErrorMessage, isDuplicateKeyError } from '../../libs/utils/error.util';
 import { MemberService } from '../member/member.service';
-import { PetService } from '../pet/pet.service';
 import { NotificationService } from '../notification/notification.service';
+import { PetService } from '../pet/pet.service';
 
 @Injectable()
 export class CommentService {
@@ -28,99 +29,19 @@ export class CommentService {
 	) {}
 
 	public async createComment(memberId: Types.ObjectId, input: CommentInput): Promise<Comment> {
-		const commentRefId = shapeIntoMongoObjectId(input.commentRefId);
-		let result: Comment;
-		let productOwnerId: Types.ObjectId | null = null;
+		const commentRefId = toObjectId(input.commentRefId);
+		const productOwnerId = await this.validateCommentTarget(memberId, input, commentRefId);
+		const comment = await this.saveComment(memberId, input, commentRefId);
+		await this.updateCommentStats(input.commentGroup, commentRefId);
 
-		if (input.commentGroup === CommentGroup.PRODUCT) {
-			const product = await this.productModel
-				.findOne({ _id: commentRefId, productStatus: ProductStatus.ACTIVE })
-				.select('memberId')
-				.exec();
-			if (!product) throw new BadRequestException('Product is unavailable.');
-			if (product.memberId.equals(memberId)) throw new BadRequestException('You cannot review your own product.');
-			if (!input.commentRating) throw new BadRequestException('Choose a rating from 1 to 5.');
-			if (!input.commentContent.trim()) throw new BadRequestException('Write a review.');
-			productOwnerId = product.memberId;
-		} else if (input.commentRating) {
-			throw new BadRequestException('Ratings are only available for products.');
+		if (input.commentGroup === CommentGroup.PRODUCT && productOwnerId) {
+			await this.notifyProductOwner(memberId, productOwnerId, commentRefId, input.commentRating);
 		}
-
-		try {
-			result = await this.commentModel.create({
-				...input,
-				commentContent: input.commentContent.trim(),
-				commentRefId,
-				memberId,
-			});
-		} catch (err: unknown) {
-			console.log('Error! CommentService.createComment', err instanceof Error ? err.message : String(err));
-			if (
-				err !== null &&
-				typeof err === 'object' &&
-				'code' in err &&
-				err.code === 11000 &&
-				input.commentGroup === CommentGroup.PRODUCT
-			) {
-				throw new BadRequestException('You have already reviewed this product.');
-			}
-			throw new BadRequestException(Message.CREATE_FAILED);
-		}
-
-		switch (input.commentGroup) {
-			case CommentGroup.PET:
-				await this.petService.petStatsEditor({
-					_id: commentRefId,
-					targetKey: 'petComments',
-					modifier: 1,
-				});
-				break;
-			case CommentGroup.MEMBER:
-				await this.memberService.memberStatsEditor({
-					_id: commentRefId,
-					targetKey: 'memberComments',
-					modifier: 1,
-				});
-				break;
-			case CommentGroup.ARTICLE: {
-				const article = await this.boardArticleModel
-					.findOneAndUpdate(
-						{ _id: commentRefId, articleStatus: BoardArticleStatus.ACTIVE },
-						{ $inc: { articleComments: 1 } },
-						{ returnDocument: 'after' },
-					)
-					.exec();
-				if (!article) throw new InternalServerErrorException(Message.UPDATE_FAILED);
-				break;
-			}
-			case CommentGroup.PRODUCT:
-				await this.refreshProductRating(commentRefId);
-				if (productOwnerId) {
-					try {
-						await this.notificationService.createNotification({
-							notificationType: NotificationType.COMMENT,
-							notificationGroup: NotificationGroup.PRODUCT,
-							notificationTitle: 'Your product received a new review',
-							notificationDesc: `${input.commentRating} out of 5 stars`,
-							authorId: memberId,
-							receiverId: productOwnerId,
-							productId: commentRefId,
-						});
-					} catch (err: unknown) {
-						console.log(
-							'Error! CommentService.createComment notification',
-							err instanceof Error ? err.message : String(err),
-						);
-					}
-				}
-				break;
-		}
-
-		return result;
+		return comment;
 	}
 
 	public async updateComment(memberId: Types.ObjectId, input: CommentUpdateInput): Promise<Comment> {
-		const commentId = shapeIntoMongoObjectId(input._id);
+		const commentId = toObjectId(input._id);
 		const result = await this.commentModel
 			.findOneAndUpdate(
 				{ _id: commentId, memberId, commentStatus: CommentStatus.ACTIVE },
@@ -134,7 +55,7 @@ export class CommentService {
 	}
 
 	public async getComments(input: CommentsInquiry): Promise<Comments> {
-		const commentRefId = shapeIntoMongoObjectId(input.search.commentRefId);
+		const commentRefId = toObjectId(input.search.commentRefId);
 		const match = { commentRefId, commentStatus: CommentStatus.ACTIVE };
 		const direction = input.direction ?? Direction.DESC;
 		const sort: Record<string, 1 | -1> = {
@@ -152,7 +73,6 @@ export class CommentService {
 							{ $skip: (input.page - 1) * input.limit },
 							{ $limit: input.limit },
 							lookupMember,
-							//meLiked
 							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } },
 						],
 						metaCounter: [{ $count: 'total' }],
@@ -205,6 +125,106 @@ export class CommentService {
 		if (!result) throw new InternalServerErrorException(Message.REMOVE_FAILED);
 		if (result.commentGroup === CommentGroup.PRODUCT) await this.refreshProductRating(result.commentRefId);
 		return result;
+	}
+
+	// Mahsulot reviewi uchun egani topamiz; boshqa izohlarda rating bo'lmasligi kerak.
+	private async validateCommentTarget(
+		memberId: Types.ObjectId,
+		input: CommentInput,
+		commentRefId: Types.ObjectId,
+	): Promise<Types.ObjectId | null> {
+		if (input.commentGroup === CommentGroup.PRODUCT) {
+			const product = await this.productModel
+				.findOne({ _id: commentRefId, productStatus: ProductStatus.ACTIVE })
+				.select('memberId')
+				.exec();
+			if (!product) throw new BadRequestException('Product is unavailable.');
+			if (product.memberId.equals(memberId)) throw new BadRequestException('You cannot review your own product.');
+			if (!input.commentRating) throw new BadRequestException('Choose a rating from 1 to 5.');
+			if (!input.commentContent.trim()) throw new BadRequestException('Write a review.');
+			return product.memberId;
+		} else if (input.commentRating) {
+			throw new BadRequestException('Ratings are only available for products.');
+		}
+
+		return null;
+	}
+
+	private async saveComment(
+		memberId: Types.ObjectId,
+		input: CommentInput,
+		commentRefId: Types.ObjectId,
+	): Promise<Comment> {
+		try {
+			return await this.commentModel.create({
+				...input,
+				commentContent: input.commentContent.trim(),
+				commentRefId,
+				memberId,
+			});
+		} catch (err: unknown) {
+			console.log('Error! CommentService.createComment', getErrorMessage(err));
+			if (isDuplicateKeyError(err) && input.commentGroup === CommentGroup.PRODUCT) {
+				throw new BadRequestException('You have already reviewed this product.');
+			}
+			throw new BadRequestException(Message.CREATE_FAILED);
+		}
+	}
+
+	// Izoh saqlangandan keyin tegishli obyekt hisoblagichi yoki mahsulot reytingi yangilanadi.
+	private async updateCommentStats(group: CommentGroup, commentRefId: Types.ObjectId): Promise<void> {
+		switch (group) {
+			case CommentGroup.PET:
+				await this.petService.updatePetStats({
+					_id: commentRefId,
+					targetKey: 'petComments',
+					modifier: 1,
+				});
+				break;
+			case CommentGroup.MEMBER:
+				await this.memberService.updateMemberStats({
+					_id: commentRefId,
+					targetKey: 'memberComments',
+					modifier: 1,
+				});
+				break;
+			case CommentGroup.ARTICLE: {
+				const article = await this.boardArticleModel
+					.findOneAndUpdate(
+						{ _id: commentRefId, articleStatus: BoardArticleStatus.ACTIVE },
+						{ $inc: { articleComments: 1 } },
+						{ returnDocument: 'after' },
+					)
+					.exec();
+				if (!article) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+				break;
+			}
+			case CommentGroup.PRODUCT:
+				await this.refreshProductRating(commentRefId);
+				break;
+		}
+	}
+
+	// Bildirishnoma xatosi saqlangan review natijasini bekor qilmaydi.
+	private async notifyProductOwner(
+		authorId: Types.ObjectId,
+		receiverId: Types.ObjectId,
+		productId: Types.ObjectId,
+		rating: number | undefined,
+	): Promise<void> {
+		try {
+			await this.notificationService.createNotification({
+				notificationType: NotificationType.COMMENT,
+				notificationGroup: NotificationGroup.PRODUCT,
+				notificationTitle: 'Your product received a new review',
+				notificationDesc: `${rating} out of 5 stars`,
+				authorId,
+				receiverId,
+				productId,
+			});
+		} catch (error: unknown) {
+			console.log('Error! CommentService.createComment notification', getErrorMessage(error));
+		}
 	}
 
 	private async refreshProductRating(productId: Types.ObjectId): Promise<void> {

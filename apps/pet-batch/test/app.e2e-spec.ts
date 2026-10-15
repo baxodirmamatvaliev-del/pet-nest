@@ -1,12 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { getConnectionToken } from '@nestjs/mongoose';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { Test, TestingModule } from '@nestjs/testing';
+import { Connection, createConnection } from 'mongoose';
 import request from 'supertest';
 import type { App } from 'supertest/types';
-import { PatBatchModule } from './../src/pat-batch.module';
-import { getConnectionToken } from '@nestjs/mongoose';
-import { createConnection, Connection } from 'mongoose';
-import { SchedulerRegistry } from '@nestjs/schedule';
 import { BATCH_ROLLBACK, BATCH_TOP_AGENTS, BATCH_TOP_PETS, BATCH_TOP_PRODUCTS } from '../src/lib/config';
+import { PatBatchModule } from './../src/pat-batch.module';
 
 // Testlar shaxsiy .env fayliga bog'liq bo'lmasin; ulanish providerini almashtiramiz.
 process.env.MONGO_DEV = 'mongodb://127.0.0.1/pet-nest-test-unused';

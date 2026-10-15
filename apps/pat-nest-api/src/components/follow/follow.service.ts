@@ -11,8 +11,9 @@ import {
 	lookupAuthMemberLiked,
 	lookupFollowerData,
 	lookupFollowingData,
-	shapeIntoMongoObjectId,
+	toObjectId,
 } from '../../libs/types/config';
+import { getErrorMessage, isDuplicateKeyError } from '../../libs/utils/error.util';
 import { MemberService } from '../member/member.service';
 import { NotificationService } from '../notification/notification.service';
 
@@ -32,8 +33,8 @@ export class FollowService {
 		await this.memberService.getMember(null, followingId);
 		const result = await this.registerSubscription(followerId, followingId);
 
-		await this.memberService.memberStatsEditor({ _id: followerId, targetKey: 'memberFollowings', modifier: 1 });
-		await this.memberService.memberStatsEditor({ _id: followingId, targetKey: 'memberFollowers', modifier: 1 });
+		await this.memberService.updateMemberStats({ _id: followerId, targetKey: 'memberFollowings', modifier: 1 });
+		await this.memberService.updateMemberStats({ _id: followingId, targetKey: 'memberFollowers', modifier: 1 });
 
 		try {
 			await this.notificationService.createNotification({
@@ -44,7 +45,7 @@ export class FollowService {
 				receiverId: followingId,
 			});
 		} catch (err: unknown) {
-			console.log('Error! FollowService.subscribe notification', err instanceof Error ? err.message : String(err));
+			console.log('Error! FollowService.subscribe notification', getErrorMessage(err));
 		}
 
 		return result;
@@ -56,12 +57,12 @@ export class FollowService {
 		const result = await this.followModel.findOneAndDelete({ followerId, followingId }).exec();
 		if (!result) throw new InternalServerErrorException(Message.NOT_SUBSCRIBED);
 
-		await this.memberService.memberStatsEditor({
+		await this.memberService.updateMemberStats({
 			_id: followerId,
 			targetKey: 'memberFollowings',
 			modifier: -1,
 		});
-		await this.memberService.memberStatsEditor({
+		await this.memberService.updateMemberStats({
 			_id: followingId,
 			targetKey: 'memberFollowers',
 			modifier: -1,
@@ -74,7 +75,7 @@ export class FollowService {
 		const { page, limit, search } = input;
 		if (!search.followerId) throw new BadRequestException(Message.BAD_REQUEST);
 
-		const followerId = shapeIntoMongoObjectId(search.followerId);
+		const followerId = toObjectId(search.followerId);
 		const result = await this.followModel
 			.aggregate<Followings>([
 				{ $match: { followerId } },
@@ -102,7 +103,7 @@ export class FollowService {
 		const { page, limit, search } = input;
 		if (!search.followingId) throw new BadRequestException(Message.BAD_REQUEST);
 
-		const followingId = shapeIntoMongoObjectId(search.followingId);
+		const followingId = toObjectId(search.followingId);
 		const result = await this.followModel
 			.aggregate<Followers>([
 				{ $match: { followingId } },
@@ -130,9 +131,8 @@ export class FollowService {
 		try {
 			return await this.followModel.create({ followerId, followingId });
 		} catch (err: unknown) {
-			console.log('Error! FollowService.registerSubscription', err instanceof Error ? err.message : String(err));
-			if (err !== null && typeof err === 'object' && 'code' in err && err.code === 11000)
-				throw new BadRequestException(Message.ALREADY_SUBSCRIBED);
+			console.log('Error! FollowService.registerSubscription', getErrorMessage(err));
+			if (isDuplicateKeyError(err)) throw new BadRequestException(Message.ALREADY_SUBSCRIBED);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
