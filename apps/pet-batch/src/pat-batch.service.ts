@@ -41,10 +41,7 @@ export class PatBatchService {
 			.exec();
 
 		const updates = pets.map(async (pet) => {
-			const rank =
-       pet.petLikes * 3 + 
-       pet.petComments * 2 + 
-       pet.petViews;
+			const rank = pet.petLikes * 3 + pet.petComments * 2 + pet.petViews;
 			return await this.petModel.findByIdAndUpdate(pet._id, { petRank: rank });
 		});
 

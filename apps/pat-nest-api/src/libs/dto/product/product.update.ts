@@ -5,12 +5,12 @@ import { ProductInput } from './product.input';
 
 @InputType()
 export class ProductUpdateInput extends PartialType(ProductInput) {
-  @Field(() => ID)
-  @IsMongoId()
-  _id: string;
+	@Field(() => ID)
+	@IsMongoId()
+	_id: string;
 
-  @Field(() => ProductStatus, { nullable: true })
-  @IsOptional()
-  @IsEnum(ProductStatus)
-  productStatus?: ProductStatus;
+	@Field(() => ProductStatus, { nullable: true })
+	@IsOptional()
+	@IsEnum(ProductStatus)
+	productStatus?: ProductStatus;
 }

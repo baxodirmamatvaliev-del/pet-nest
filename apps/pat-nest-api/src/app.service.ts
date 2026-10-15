@@ -1,30 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
-import { Connection } from 'mongoose';
+import { Connection, ConnectionStates } from 'mongoose';
 
-interface HealthStatus {
-  status: 'ok';
-  database: 'connected';
-  timestamp: string;
+export interface HealthStatus {
+	status: 'ok';
+	database: 'connected';
+	timestamp: string;
 }
 
 @Injectable()
 export class AppService {
-  constructor(@InjectConnection() private readonly connection: Connection) {}
+	constructor(@InjectConnection() private readonly connection: Connection) {}
 
-  getHello(): string {
-    return 'salom';
-  }
+	getHello(): string {
+		return 'salom';
+	}
 
-  getHealth(): HealthStatus {
-    return {
-      status: 'ok',
-      database: 'connected',
-      timestamp: new Date().toISOString(),
-    };
-  }
+	getHealth(): HealthStatus {
+		return {
+			status: 'ok',
+			database: 'connected',
+			timestamp: new Date().toISOString(),
+		};
+	}
 
-  isDatabaseConnected(): boolean {
-    return this.connection.readyState === 1;
-  }
+	isDatabaseConnected(): boolean {
+		return this.connection.readyState === ConnectionStates.connected;
+	}
 }

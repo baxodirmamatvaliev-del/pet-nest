@@ -4,11 +4,11 @@ import { OrderStatus } from '../../enums/order.enum';
 
 @InputType()
 export class OrderStatusUpdateInput {
-  @Field(() => ID)
-  @IsMongoId()
-  _id: string;
+	@Field(() => ID)
+	@IsMongoId()
+	_id: string;
 
-  @Field(() => OrderStatus)
-  @IsIn([OrderStatus.IN_TRANSIT, OrderStatus.DELIVERED_TO_CUSTOMER])
-  orderStatus: OrderStatus;
+	@Field(() => OrderStatus)
+	@IsIn([OrderStatus.IN_TRANSIT, OrderStatus.DELIVERED_TO_CUSTOMER])
+	orderStatus: OrderStatus;
 }

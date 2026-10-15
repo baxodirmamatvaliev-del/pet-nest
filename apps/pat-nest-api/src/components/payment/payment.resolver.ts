@@ -13,58 +13,53 @@ import { PaymentService } from './payment.service';
 
 @Resolver(() => Payment)
 export class PaymentResolver {
-  constructor(private readonly paymentService: PaymentService) {}
+	constructor(private readonly paymentService: PaymentService) {}
 
-  //Foydalanuvchi o‘zining PENDING orderi uchun payment yaratadi.
-  @UseGuards(AuthGuard)
-  @Mutation(() => Payment)
-  public async createPayment(
-    @Args('input') input: CreatePaymentInput,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Payment> {
-    console.log('Mutation: createPayment');
-    return await this.paymentService.createPayment(memberId, input);
-  }
+	//Foydalanuvchi o‘zining PENDING orderi uchun payment yaratadi.
+	@UseGuards(AuthGuard)
+	@Mutation(() => Payment)
+	public async createPayment(
+		@Args('input') input: CreatePaymentInput,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Payment> {
+		return await this.paymentService.createPayment(memberId, input);
+	}
 
-  //Foydalanuvchi payment ID orqali o‘z to‘lov ma’lumotini ko‘radi:
-  @UseGuards(AuthGuard)
-  @Query(() => Payment)
-  public async getPayment(
-    @Args('paymentId') input: string,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Payment> {
-    console.log('Query: getPayment');
-    const paymentId = shapeIntoMongoObjectId(input);
-    return await this.paymentService.getPayment(memberId, paymentId);
-  }
+	//Foydalanuvchi payment ID orqali o‘z to‘lov ma’lumotini ko‘radi:
+	@UseGuards(AuthGuard)
+	@Query(() => Payment)
+	public async getPayment(
+		@Args('paymentId') input: string,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Payment> {
+		const paymentId = shapeIntoMongoObjectId(input);
+		return await this.paymentService.getPayment(memberId, paymentId);
+	}
 
-  @Roles(MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Query(() => Payment, { nullable: true })
-  public async getPaymentByOrderByAdmin(@Args('orderId') input: string): Promise<Payment | null> {
-    console.log('Query: getPaymentByOrderByAdmin');
-    const orderId = shapeIntoMongoObjectId(input);
-    return await this.paymentService.getPaymentByOrderByAdmin(orderId);
-  }
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Query(() => Payment, { nullable: true })
+	public async getPaymentByOrderByAdmin(@Args('orderId') input: string): Promise<Payment | null> {
+		const orderId = shapeIntoMongoObjectId(input);
+		return await this.paymentService.getPaymentByOrderByAdmin(orderId);
+	}
 
-  //Foydalanuvchi o‘zining PENDING paymentini bekor qiladi.
-  @UseGuards(AuthGuard)
-  @Mutation(() => Payment)
-  public async cancelPayment(
-    @Args('paymentId') input: string,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Payment> {
-    console.log('Mutation: cancelPayment');
-    const paymentId = shapeIntoMongoObjectId(input);
-    return await this.paymentService.cancelPayment(memberId, paymentId);
-  }
+	//Foydalanuvchi o‘zining PENDING paymentini bekor qiladi.
+	@UseGuards(AuthGuard)
+	@Mutation(() => Payment)
+	public async cancelPayment(
+		@Args('paymentId') input: string,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Payment> {
+		const paymentId = shapeIntoMongoObjectId(input);
+		return await this.paymentService.cancelPayment(memberId, paymentId);
+	}
 
-  // ADMIN to‘lov muvaffaqiyatli bo‘lganini tasdiqlaydi.
-  @Roles(MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Mutation(() => Payment)
-  public async confirmPayment(@Args('input') input: ConfirmPaymentInput): Promise<Payment> {
-    console.log('Mutation: confirmPayment');
-    return await this.paymentService.confirmPayment(input);
-  }
+	// ADMIN to‘lov muvaffaqiyatli bo‘lganini tasdiqlaydi.
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Mutation(() => Payment)
+	public async confirmPayment(@Args('input') input: ConfirmPaymentInput): Promise<Payment> {
+		return await this.paymentService.confirmPayment(input);
+	}
 }

@@ -22,159 +22,152 @@ import { Throttle } from '@nestjs/throttler';
 
 @Resolver(() => Member)
 export class MemberResolver {
-  constructor(
-    private readonly memberService: MemberService,
-    private readonly imageUploadService: ImageUploadService,
-    private readonly authService: AuthService,
-  ) {}
+	constructor(
+		private readonly memberService: MemberService,
+		private readonly imageUploadService: ImageUploadService,
+		private readonly authService: AuthService,
+	) {}
 
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  @Mutation(() => Member)
-  public async signup(@Args('input') input: MemberInput, @Context() context: { req: Request; res: Response }): Promise<Member> {
-    console.log('Mutation: signup');
-    // Cookie berishdan oldin so‘rov ruxsat etilgan frontenddan kelganini tekshiramiz.
-    this.authService.assertTrustedOrigin(context.req);
-    const member = await this.memberService.signup(input);
-    // Login/signup muvaffaqiyatli: 15 kunlik sessiya yaratib, refresh cookie beramiz.
-    await this.authService.startSession(member._id, context.res);
-    return member;
-  }
+	@Throttle({ default: { limit: 10, ttl: 60_000 } })
+	@Mutation(() => Member)
+	public async signup(
+		@Args('input') input: MemberInput,
+		@Context() context: { req: Request; res: Response },
+	): Promise<Member> {
+		// Cookie berishdan oldin so‘rov ruxsat etilgan frontenddan kelganini tekshiramiz.
+		this.authService.assertTrustedOrigin(context.req);
+		const member = await this.memberService.signup(input);
+		// Login/signup muvaffaqiyatli: 15 kunlik sessiya yaratib, refresh cookie beramiz.
+		await this.authService.startSession(member._id, context.res);
+		return member;
+	}
 
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  @Mutation(() => AuthPayload)
-  public async login(@Args('input') input: LoginInput, @Context() context: { req: Request; res: Response }): Promise<AuthPayload> {
-    console.log('Mutation: login');
-    // Cookie berishdan oldin so‘rov ruxsat etilgan frontenddan kelganini tekshiramiz.
-    this.authService.assertTrustedOrigin(context.req);
-    const payload = await this.memberService.login(input);
-    // Login/signup muvaffaqiyatli: 15 kunlik sessiya yaratib, refresh cookie beramiz.
-    await this.authService.startSession(payload.member._id, context.res);
-    return payload;
-  }
+	@Throttle({ default: { limit: 10, ttl: 60_000 } })
+	@Mutation(() => AuthPayload)
+	public async login(
+		@Args('input') input: LoginInput,
+		@Context() context: { req: Request; res: Response },
+	): Promise<AuthPayload> {
+		// Cookie berishdan oldin so‘rov ruxsat etilgan frontenddan kelganini tekshiramiz.
+		this.authService.assertTrustedOrigin(context.req);
+		const payload = await this.memberService.login(input);
+		// Login/signup muvaffaqiyatli: 15 kunlik sessiya yaratib, refresh cookie beramiz.
+		await this.authService.startSession(payload.member._id, context.res);
+		return payload;
+	}
 
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @Mutation(() => AuthPayload)
-  public async refreshToken(@Context() context: { req: Request; res: Response }): Promise<AuthPayload> {
-    // Access token talab qilinmaydi; refresh cookie tekshirilib, yangi tokenlar beriladi.
-    return await this.authService.refresh(context.req, context.res) as AuthPayload;
-  }
+	@Throttle({ default: { limit: 30, ttl: 60_000 } })
+	@Mutation(() => AuthPayload)
+	public async refreshToken(@Context() context: { req: Request; res: Response }): Promise<AuthPayload> {
+		// Access token talab qilinmaydi; refresh cookie tekshirilib, yangi tokenlar beriladi.
+		return (await this.authService.refresh(context.req, context.res)) as AuthPayload;
+	}
 
-  @Mutation(() => Boolean)
-  public async logout(@Context() context: { req: Request; res: Response }): Promise<boolean> {
-    // Cookie’ni tozalab, unga tegishli bazadagi sessiyani bekor qilamiz.
-    return await this.authService.logout(context.req, context.res);
-  }
+	@Mutation(() => Boolean)
+	public async logout(@Context() context: { req: Request; res: Response }): Promise<boolean> {
+		// Cookie’ni tozalab, unga tegishli bazadagi sessiyani bekor qilamiz.
+		return await this.authService.logout(context.req, context.res);
+	}
 
-  @UseGuards(AuthGuard)
-  @Query(() => String)
-  public async checkAuth(@AuthMember('memberNick') memberNick: string): Promise<string> {
-    console.log('Query: checkAuth');
-    console.log('memberNick:', memberNick);
-    return `hi ${memberNick}`;
-  }
+	@UseGuards(AuthGuard)
+	@Query(() => String)
+	public checkAuth(@AuthMember('memberNick') memberNick: string): string {
+		return `hi ${memberNick}`;
+	}
 
-  @Roles(MemberType.USER, MemberType.AGENT)
-  @UseGuards(RolesGuard)
-  @Query(() => String)
-  public async checkAuthRoles(@AuthMember() member: Member): Promise<string> {
-    console.log('Query: checkAuthRoles');
-    return `hi ${member.memberNick}, you are ${member.memberType}`;
-  }
+	@Roles(MemberType.USER, MemberType.AGENT)
+	@UseGuards(RolesGuard)
+	@Query(() => String)
+	public checkAuthRoles(@AuthMember() member: Member): string {
+		return `hi ${member.memberNick}, you are ${member.memberType}`;
+	}
 
-  @UseGuards(AuthGuard)
-  @Mutation(() => Member)
-  public async updateMember(
-    @Args('input') input: MemberUpdateInput,
-    @AuthMember('_id') memberId: string | Types.ObjectId,
-  ): Promise<Member> {
-    console.log('Mutation: updateMember');
-    const targetId = shapeIntoMongoObjectId(memberId);
-    return await this.memberService.updateMember(targetId, input);
-  }
+	@UseGuards(AuthGuard)
+	@Mutation(() => Member)
+	public async updateMember(
+		@Args('input') input: MemberUpdateInput,
+		@AuthMember('_id') memberId: string | Types.ObjectId,
+	): Promise<Member> {
+		const targetId = shapeIntoMongoObjectId(memberId);
+		return await this.memberService.updateMember(targetId, input);
+	}
 
-  @UseGuards(WithoutGuard)
-  @Query(() => Member)
-  public async getMember(
-    @Args('memberId') input: string,
-    @AuthMember('_id') memberId: Types.ObjectId | null,
-  ): Promise<Member> {
-    console.log('Query: getMember');
-    const targetId = shapeIntoMongoObjectId(input);
-    return await this.memberService.getMember(memberId, targetId);
-  }
+	@UseGuards(WithoutGuard)
+	@Query(() => Member)
+	public async getMember(
+		@Args('memberId') input: string,
+		@AuthMember('_id') memberId: Types.ObjectId | null,
+	): Promise<Member> {
+		const targetId = shapeIntoMongoObjectId(input);
+		return await this.memberService.getMember(memberId, targetId);
+	}
 
-  @UseGuards(AuthGuard)
-  @Mutation(() => Member)
-  public async likeTargetMember(
-    @Args('memberId') input: string,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Member> {
-    console.log('Mutation: likeTargetMember');
-    const likeRefId = shapeIntoMongoObjectId(input);
-    return await this.memberService.likeTargetMember(memberId, likeRefId);
-  }
+	@UseGuards(AuthGuard)
+	@Mutation(() => Member)
+	public async likeTargetMember(
+		@Args('memberId') input: string,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Member> {
+		const likeRefId = shapeIntoMongoObjectId(input);
+		return await this.memberService.likeTargetMember(memberId, likeRefId);
+	}
 
-  @UseGuards(AuthGuard)
-  @Query(() => Members)
-  public async getFavoriteMembers(
-    @Args('input') input: FavoriteInquiry,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Members> {
-    console.log('Query: getFavoriteMembers');
-    return await this.memberService.getFavoriteMembers(memberId, input);
-  }
+	@UseGuards(AuthGuard)
+	@Query(() => Members)
+	public async getFavoriteMembers(
+		@Args('input') input: FavoriteInquiry,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Members> {
+		return await this.memberService.getFavoriteMembers(memberId, input);
+	}
 
-  @UseGuards(WithoutGuard)
-  @Query(() => Members)
-  public async getAgents(
-    @Args('input') input: AgentsInquiry,
-    @AuthMember('_id') memberId: Types.ObjectId | null,
-  ): Promise<Members> {
-    console.log('Query: getAgents');
-    return await this.memberService.getAgents(memberId, input);
-  }
+	@UseGuards(WithoutGuard)
+	@Query(() => Members)
+	public async getAgents(
+		@Args('input') input: AgentsInquiry,
+		@AuthMember('_id') memberId: Types.ObjectId | null,
+	): Promise<Members> {
+		return await this.memberService.getAgents(memberId, input);
+	}
 
-/** ADMIN **/  
-  @Roles(MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Query(() => Members)
-  public async getAllMembersByAdmin(@Args('input') 
-  input: MembersInquiry): Promise<Members> {
-    console.log('Query: getAllMembersByAdmin');
-    return await this.memberService.getAllMembersByAdmin(input);
-  }
+	/** ADMIN **/
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Query(() => Members)
+	public async getAllMembersByAdmin(
+		@Args('input')
+		input: MembersInquiry,
+	): Promise<Members> {
+		return await this.memberService.getAllMembersByAdmin(input);
+	}
 
-  // Authorization: ADMIN
-  @Roles(MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Mutation(() => Member)
-  public async updateMemberByAdmin
-  (@Args('input') input: MemberUpdateByAdminInput): Promise<Member> {
-    console.log('Mutation: updateMemberByAdmin');
-    return await this.memberService.updateMemberByAdmin(input);
-  }
+	// Authorization: ADMIN
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Mutation(() => Member)
+	public async updateMemberByAdmin(@Args('input') input: MemberUpdateByAdminInput): Promise<Member> {
+		return await this.memberService.updateMemberByAdmin(input);
+	}
 
-  /** IMAGE UPLOADER **/
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  @UseGuards(AuthGuard)
-  @Mutation(() => String)
-  public async imageUploader(
-    // Emit Object metadata so ValidationPipe does not try to construct a Promise.
-    @Args('file', { type: () => GraphQLUpload }) file: Promise<FileUpload> | FileUpload,
-    @Args('target') target: string,
-  ): Promise<string> {
-    console.log('Mutation: imageUploader');
-    return await this.imageUploadService.imageUploader(await file, target);
-  }
+	/** IMAGE UPLOADER **/
+	@Throttle({ default: { limit: 10, ttl: 60_000 } })
+	@UseGuards(AuthGuard)
+	@Mutation(() => String)
+	public async imageUploader(
+		// Emit Object metadata so ValidationPipe does not try to construct a Promise.
+		@Args('file', { type: () => GraphQLUpload }) file: Promise<FileUpload> | FileUpload,
+		@Args('target') target: string,
+	): Promise<string> {
+		return await this.imageUploadService.imageUploader(await file, target);
+	}
 
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  @UseGuards(AuthGuard)
-  @Mutation(() => [String])
-  public async imagesUploader(
-    @Args('files', { type: () => [GraphQLUpload] }) files: Promise<FileUpload>[],
-    @Args('target') target: string,
-  ): Promise<string[]> {
-    console.log('Mutation: imagesUploader');
-    return await this.imageUploadService.imagesUploader(files, target);
-  }
+	@Throttle({ default: { limit: 10, ttl: 60_000 } })
+	@UseGuards(AuthGuard)
+	@Mutation(() => [String])
+	public async imagesUploader(
+		@Args('files', { type: () => [GraphQLUpload] }) files: Promise<FileUpload>[],
+		@Args('target') target: string,
+	): Promise<string[]> {
+		return await this.imageUploadService.imagesUploader(files, target);
+	}
 }

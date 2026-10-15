@@ -97,7 +97,10 @@ export class ImageUploadService {
 				throw new PayloadTooLargeException(Message.IMAGE_TOO_LARGE);
 			}
 
-			console.log('Error! ImageUploadService.imageUploader', err instanceof Error ? err.message : err);
+			console.log(
+				'Error! ImageUploadService.imageUploader',
+				err instanceof Error ? (err instanceof Error ? err.message : String(err)) : err,
+			);
 			throw new InternalServerErrorException(Message.UPLOAD_FAILED);
 		}
 	}
@@ -113,7 +116,7 @@ export class ImageUploadService {
 				uploadedImages.push(await this.imageUploader(await file, target));
 			}
 			return uploadedImages;
-		} catch (err) {
+		} catch (err: unknown) {
 			await Promise.all(uploadedImages.map((url) => fs.unlink(join(process.cwd(), url)).catch(() => undefined)));
 			throw err;
 		}

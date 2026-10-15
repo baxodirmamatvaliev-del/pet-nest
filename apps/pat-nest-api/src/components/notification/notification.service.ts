@@ -10,54 +10,54 @@ import { NotificationGateway } from '../../socket/notification.gateway';
 
 @Injectable()
 export class NotificationService {
-  constructor(
-    @InjectModel('Notification') private readonly notificationModel: Model<Notification>,
-    // Bazaga yozilgan bildirishnomani qabul qiluvchiga Socket.IO orqali darhol yuboramiz.
-    private readonly socketGateway: NotificationGateway,
-  ) {}
+	constructor(
+		@InjectModel('Notification') private readonly notificationModel: Model<Notification>,
+		// Bazaga yozilgan bildirishnomani qabul qiluvchiga Socket.IO orqali darhol yuboramiz.
+		private readonly socketGateway: NotificationGateway,
+	) {}
 
-  public async createNotification(input: CreateNotification): Promise<Notification> {
-    try {
-      const notification = await this.notificationModel.create(input);
-      this.socketGateway.sendNotification(input.receiverId, notification);
-      return notification;
-    } catch (err) {
-      console.log('Error! NotificationService.createNotification', err.message);
-      throw new BadRequestException(Message.CREATE_FAILED);
-    }
-  }
+	public async createNotification(input: CreateNotification): Promise<Notification> {
+		try {
+			const notification = await this.notificationModel.create(input);
+			this.socketGateway.sendNotification(input.receiverId, notification);
+			return notification;
+		} catch (err: unknown) {
+			console.log('Error! NotificationService.createNotification', err instanceof Error ? err.message : String(err));
+			throw new BadRequestException(Message.CREATE_FAILED);
+		}
+	}
 
-  public async getMyNotifications( memberId: Types.ObjectId,input: NotificationsInquiry,): Promise<Notifications> {
-    const match: Record<string, unknown> = { receiverId: memberId };
-    if (input.search.notificationStatus) {
-      match.notificationStatus = input.search.notificationStatus;
-    }
+	public async getMyNotifications(memberId: Types.ObjectId, input: NotificationsInquiry): Promise<Notifications> {
+		const match: Record<string, unknown> = { receiverId: memberId };
+		if (input.search.notificationStatus) {
+			match.notificationStatus = input.search.notificationStatus;
+		}
 
-    const result = await this.notificationModel
-    .aggregate<Notifications>([
-      { $match: match },
-      { $sort: { createdAt: -1, _id: -1 } },
-      {
-        $facet: {
-          list: [
-            { $skip: (input.page - 1) * input.limit },
-            { $limit: input.limit },
-          ],
-          metaCounter: [{ $count: 'total' }],
-        },
-      },
-    ]).exec();
+		const result = await this.notificationModel
+			.aggregate<Notifications>([
+				{ $match: match },
+				{ $sort: { createdAt: -1, _id: -1 } },
+				{
+					$facet: {
+						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
 
-    return result[0] ?? { list: [], metaCounter: [] };
-  }
+		return result[0] ?? { list: [], metaCounter: [] };
+	}
 
-  public async readNotification(memberId: Types.ObjectId, notificationId: Types.ObjectId): Promise<Notification> {
-    const notification = await this.notificationModel.findOneAndUpdate(
-      { _id: notificationId, receiverId: memberId },
-      { $set: { notificationStatus: NotificationStatus.READ } },
-      { returnDocument: 'after' },
-    ).exec();
-    if (!notification) throw new NotFoundException(Message.NO_DATA_FOUND);
-    return notification;
-  }
+	public async readNotification(memberId: Types.ObjectId, notificationId: Types.ObjectId): Promise<Notification> {
+		const notification = await this.notificationModel
+			.findOneAndUpdate(
+				{ _id: notificationId, receiverId: memberId },
+				{ $set: { notificationStatus: NotificationStatus.READ } },
+				{ returnDocument: 'after' },
+			)
+			.exec();
+		if (!notification) throw new NotFoundException(Message.NO_DATA_FOUND);
+		return notification;
+	}
 }

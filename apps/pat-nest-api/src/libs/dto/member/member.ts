@@ -6,108 +6,108 @@ import { MeFollowed } from '../follow/follow';
 
 @ObjectType()
 export class Member {
-  @Field(() => ID)
-  _id: Types.ObjectId;
+	@Field(() => ID)
+	_id: Types.ObjectId;
 
-  @Field()
-  memberNick: string;
+	@Field()
+	memberNick: string;
 
-  @Field()
-  memberPhone: string;
+	@Field()
+	memberPhone: string;
 
-  @Field(() => MemberType)
-  memberType: MemberType;
+	@Field(() => MemberType)
+	memberType: MemberType;
 
-  @Field(() => MemberStatus)
-  memberStatus: MemberStatus;
+	@Field(() => MemberStatus)
+	memberStatus: MemberStatus;
 
-  @Field(() => MemberAuthType)
-  memberAuthType: MemberAuthType;
+	@Field(() => MemberAuthType)
+	memberAuthType: MemberAuthType;
 
-  @Field({ nullable: true })
-  memberFullName?: string;
+	@Field({ nullable: true })
+	memberFullName?: string;
 
-  @Field()
-  memberImage: string;
+	@Field()
+	memberImage: string;
 
-  @Field({ nullable: true })
-  memberAddress?: string;
+	@Field({ nullable: true })
+	memberAddress?: string;
 
-  @Field({ nullable: true })
-  memberDesc?: string;
+	@Field({ nullable: true })
+	memberDesc?: string;
 
-  @Field(() => Int)
-  memberPets: number;
+	@Field(() => Int)
+	memberPets: number;
 
-  @Field(() => Int)
-  memberArticles: number;
+	@Field(() => Int)
+	memberArticles: number;
 
-  @Field(() => Int)
-  memberFollowers: number;
+	@Field(() => Int)
+	memberFollowers: number;
 
-  @Field(() => Int)
-  memberFollowings: number;
+	@Field(() => Int)
+	memberFollowings: number;
 
-  @Field(() => Int)
-  memberPoints: number;
+	@Field(() => Int)
+	memberPoints: number;
 
-  @Field(() => Int)
-  memberLikes: number;
+	@Field(() => Int)
+	memberLikes: number;
 
-  @Field(() => Int)
-  memberViews: number;
+	@Field(() => Int)
+	memberViews: number;
 
-  @Field(() => Int)
-  memberComments: number;
+	@Field(() => Int)
+	memberComments: number;
 
-  @Field(() => Int)
-  memberRank: number;
+	@Field(() => Int)
+	memberRank: number;
 
-  @Field(() => Int)
-  memberWarnings: number;
+	@Field(() => Int)
+	memberWarnings: number;
 
-  @Field(() => Int)
-  memberBlocks: number;
+	@Field(() => Int)
+	memberBlocks: number;
 
-  @Field({ nullable: true })
-  deletedAt?: Date;
+	@Field({ nullable: true })
+	deletedAt?: Date;
 
-  @Field()
-  createdAt: Date;
+	@Field()
+	createdAt: Date;
 
-  @Field()
-  updatedAt: Date;
+	@Field()
+	updatedAt: Date;
 
-  @Field({ nullable: true })
-  accessToken?: string;
+	@Field({ nullable: true })
+	accessToken?: string;
 
-  @Field(() => [MeLiked], { nullable: true })
-  meLiked?: MeLiked[];
+	@Field(() => [MeLiked], { nullable: true })
+	meLiked?: MeLiked[];
 
-  @Field(() => [MeFollowed], { nullable: true })
-  meFollowed?: MeFollowed[];
+	@Field(() => [MeFollowed], { nullable: true })
+	meFollowed?: MeFollowed[];
 }
 
 @ObjectType()
 export class AuthPayload {
-  @Field()
-  accessToken: string;
+	@Field()
+	accessToken: string;
 
-  @Field(() => Member)
-  member: Member;
+	@Field(() => Member)
+	member: Member;
 }
 
 @ObjectType()
 export class TotalCounter {
-  @Field(() => Int)
-  total: number;
+	@Field(() => Int)
+	total: number;
 }
 
 @ObjectType()
 export class Members {
-  @Field(() => [Member])
-  list: Member[];
+	@Field(() => [Member])
+	list: Member[];
 
-  @Field(() => [TotalCounter])
-  metaCounter: TotalCounter[];
+	@Field(() => [TotalCounter])
+	metaCounter: TotalCounter[];
 }

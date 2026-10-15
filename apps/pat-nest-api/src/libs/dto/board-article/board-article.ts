@@ -4,39 +4,39 @@ import { BoardArticleCategory, BoardArticleStatus } from '../../enums/board-arti
 
 @ObjectType()
 export class BoardArticle {
-  @Field(() => ID)
-  _id: Types.ObjectId;
+	@Field(() => ID)
+	_id: Types.ObjectId;
 
-  @Field(() => BoardArticleCategory)
-  articleCategory: BoardArticleCategory;
+	@Field(() => BoardArticleCategory)
+	articleCategory: BoardArticleCategory;
 
-  @Field(() => BoardArticleStatus)
-  articleStatus: BoardArticleStatus;
+	@Field(() => BoardArticleStatus)
+	articleStatus: BoardArticleStatus;
 
-  @Field()
-  articleTitle: string;
+	@Field()
+	articleTitle: string;
 
-  @Field()
-  articleContent: string;
+	@Field()
+	articleContent: string;
 
-  @Field({ nullable: true })
-  articleImage?: string;
+	@Field({ nullable: true })
+	articleImage?: string;
 
-  @Field(() => Int)
-  articleLikes: number;
+	@Field(() => Int)
+	articleLikes: number;
 
-  @Field(() => Int)
-  articleViews: number;
+	@Field(() => Int)
+	articleViews: number;
 
-  @Field(() => Int)
-  articleComments: number;
+	@Field(() => Int)
+	articleComments: number;
 
-  @Field(() => ID)
-  memberId: Types.ObjectId;
+	@Field(() => ID)
+	memberId: Types.ObjectId;
 
-  @Field()
-  createdAt: Date;
+	@Field()
+	createdAt: Date;
 
-  @Field()
-  updatedAt: Date;
+	@Field()
+	updatedAt: Date;
 }

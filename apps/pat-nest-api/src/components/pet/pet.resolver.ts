@@ -16,123 +16,106 @@ import { PetService } from './pet.service';
 
 @Resolver(() => Pet)
 export class PetResolver {
-  constructor(private readonly petService: PetService) {}
+	constructor(private readonly petService: PetService) {}
 
-  //hayvonni sotish yoki asrab olish uchun yangi e’lon yaratish
-  @Roles(MemberType.USER, MemberType.AGENT)
-  @UseGuards(RolesGuard)
-  @Mutation(() => Pet)
-  public async createPet(
-    @Args('input') input: PetInput,
-    @AuthMember('_id') memberId: string | Types.ObjectId,
-  ): Promise<Pet> {
-    console.log('Mutation: createPet');
-    return await this.petService.createPet(shapeIntoMongoObjectId(memberId), input);
-  }
-  //hayvon e’lonini ko‘rsatadi, ko‘rishni hisoblaydi va like holatini qaytaradi.
-  @UseGuards(WithoutGuard)
-  @Query(() => Pet)
-  public async getPet(
-    @Args('petId') input: string,
-    @AuthMember('_id') memberId: Types.ObjectId | null,
-  ): Promise<Pet> {
-    console.log('Query: getPet');
-    const petId = shapeIntoMongoObjectId(input);
-    return await this.petService.getPet(memberId, petId);
-  }
+	//hayvonni sotish yoki asrab olish uchun yangi e’lon yaratish
+	@Roles(MemberType.USER, MemberType.AGENT)
+	@UseGuards(RolesGuard)
+	@Mutation(() => Pet)
+	public async createPet(
+		@Args('input') input: PetInput,
+		@AuthMember('_id') memberId: string | Types.ObjectId,
+	): Promise<Pet> {
+		return await this.petService.createPet(shapeIntoMongoObjectId(memberId), input);
+	}
+	//hayvon e’lonini ko‘rsatadi, ko‘rishni hisoblaydi va like holatini qaytaradi.
+	@UseGuards(WithoutGuard)
+	@Query(() => Pet)
+	public async getPet(@Args('petId') input: string, @AuthMember('_id') memberId: Types.ObjectId | null): Promise<Pet> {
+		const petId = shapeIntoMongoObjectId(input);
+		return await this.petService.getPet(memberId, petId);
+	}
 
-  //updatePetda e’lonni faqat egasi yangilaydi
-  @Roles(MemberType.USER, MemberType.AGENT)
-  @UseGuards(RolesGuard)
-  @Mutation(() => Pet)
-  public async updatePet(
-    @Args('input') input: PetUpdateInput,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Pet> {
-    console.log('Mutation: updatePet');
-    return await this.petService.updatePet(memberId, input);
-  }
- //faol e’lonlarni tur, joy, e’lon turi, narx va matn bo‘yicha qidiradi.
-  @UseGuards(WithoutGuard)
-  @Query(() => Pets)
-  public async getPets(
-    @Args('input') input: PetsInquiry,
-    @AuthMember('_id') memberId: Types.ObjectId | null,
-  ): Promise<Pets> {
-    console.log('Query: getPets');
-    return await this.petService.getPets(memberId, input);
-  }
+	//updatePetda e’lonni faqat egasi yangilaydi
+	@Roles(MemberType.USER, MemberType.AGENT)
+	@UseGuards(RolesGuard)
+	@Mutation(() => Pet)
+	public async updatePet(
+		@Args('input') input: PetUpdateInput,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Pet> {
+		return await this.petService.updatePet(memberId, input);
+	}
+	//faol e’lonlarni tur, joy, e’lon turi, narx va matn bo‘yicha qidiradi.
+	@UseGuards(WithoutGuard)
+	@Query(() => Pets)
+	public async getPets(
+		@Args('input') input: PetsInquiry,
+		@AuthMember('_id') memberId: Types.ObjectId | null,
+	): Promise<Pets> {
+		return await this.petService.getPets(memberId, input);
+	}
 
-  //foydalanuvchi yoqtirgan faol Pet e’lonlarini qaytaradi.
-  @UseGuards(AuthGuard)
-  @Query(() => Pets)
-  public async getFavoritePets(
-    @Args('input') input: FavoriteInquiry,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Pets> {
-    console.log('Query: getFavoritePets');
-    return await this.petService.getFavoritePets(memberId, input);
-  }
-  //foydalanuvchi ko‘rgan faol Pet e’lonlarini qaytaradi.
-  @UseGuards(AuthGuard)
-  @Query(() => Pets)
-  public async getVisitedPets(
-    @Args('input') input: OrdinaryInquiry,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Pets> {
-    console.log('Query: getVisitedPets');
-    return await this.petService.getVisitedPets(memberId, input);
-  }
-  //foydalanuvchining o‘z e’lonlarini status bo‘yicha filtrlab, sahifalab qaytaradi.
-  @Roles(MemberType.USER, MemberType.AGENT)
-  @UseGuards(RolesGuard)
-  @Query(() => Pets)
-  public async getMyPets(
-    @Args('input') input: MyPetsInquiry,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Pets> {
-    console.log('Query: getMyPets');
-    return await this.petService.getMyPets(memberId, input);
-  }
- //ol e’longa like qo‘yadi yoki mavjud like’ni olib tashlaydi va petLikesni yangilaydi.
-  @UseGuards(AuthGuard)
-  @Mutation(() => Pet)
-  public async likeTargetPet(
-    @Args('petId') input: string,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Pet> {
-    console.log('Mutation: likeTargetPet');
-    const petId = shapeIntoMongoObjectId(input);
-    return await this.petService.likeTargetPet(memberId, petId);
-  }
+	//foydalanuvchi yoqtirgan faol Pet e’lonlarini qaytaradi.
+	@UseGuards(AuthGuard)
+	@Query(() => Pets)
+	public async getFavoritePets(
+		@Args('input') input: FavoriteInquiry,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Pets> {
+		return await this.petService.getFavoritePets(memberId, input);
+	}
+	//foydalanuvchi ko‘rgan faol Pet e’lonlarini qaytaradi.
+	@UseGuards(AuthGuard)
+	@Query(() => Pets)
+	public async getVisitedPets(
+		@Args('input') input: OrdinaryInquiry,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Pets> {
+		return await this.petService.getVisitedPets(memberId, input);
+	}
+	//foydalanuvchining o‘z e’lonlarini status bo‘yicha filtrlab, sahifalab qaytaradi.
+	@Roles(MemberType.USER, MemberType.AGENT)
+	@UseGuards(RolesGuard)
+	@Query(() => Pets)
+	public async getMyPets(
+		@Args('input') input: MyPetsInquiry,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Pets> {
+		return await this.petService.getMyPets(memberId, input);
+	}
+	//ol e’longa like qo‘yadi yoki mavjud like’ni olib tashlaydi va petLikesni yangilaydi.
+	@UseGuards(AuthGuard)
+	@Mutation(() => Pet)
+	public async likeTargetPet(@Args('petId') input: string, @AuthMember('_id') memberId: Types.ObjectId): Promise<Pet> {
+		const petId = shapeIntoMongoObjectId(input);
+		return await this.petService.likeTargetPet(memberId, petId);
+	}
 
-  /** ADMIN **/
+	/** ADMIN **/
 
-  //barcha statusdagi e’lonlarni filtr va sahifalash bilan ko‘rsatadi.
-  @Roles(MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Query(() => Pets)
-  public async getAllPetsByAdmin(@Args('input') input: AdminPetsInquiry): Promise<Pets> {
-    console.log('Query: getAllPetsByAdmin');
-    return await this.petService.getAllPetsByAdmin(input);
-  }
+	//barcha statusdagi e’lonlarni filtr va sahifalash bilan ko‘rsatadi.
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Query(() => Pets)
+	public async getAllPetsByAdmin(@Args('input') input: AdminPetsInquiry): Promise<Pets> {
+		return await this.petService.getAllPetsByAdmin(input);
+	}
 
-  //admin faol yoki band e’lonni yangilaydi; yakunlansa egasining memberPets soni kamayadi.
-  @Roles(MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Mutation(() => Pet)
-  public async updatePetByAdmin(@Args('input') input: PetUpdateInput): Promise<Pet> {
-    console.log('Mutation: updatePetByAdmin');
-    return await this.petService.updatePetByAdmin(input);
-  }
+	//admin faol yoki band e’lonni yangilaydi; yakunlansa egasining memberPets soni kamayadi.
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Mutation(() => Pet)
+	public async updatePetByAdmin(@Args('input') input: PetUpdateInput): Promise<Pet> {
+		return await this.petService.updatePetByAdmin(input);
+	}
 
-  // Stratus DELETE bolgan elon larni remove qiladi
-  @Roles(MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Mutation(() => Pet)
-  public async removePetByAdmin(@Args('petId') input: string): Promise<Pet> {
-    console.log('Mutation: removePetByAdmin');
-    const petId = shapeIntoMongoObjectId(input);
-    return await this.petService.removePetByAdmin(petId);
-  }
+	// Stratus DELETE bolgan elon larni remove qiladi
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Mutation(() => Pet)
+	public async removePetByAdmin(@Args('petId') input: string): Promise<Pet> {
+		const petId = shapeIntoMongoObjectId(input);
+		return await this.petService.removePetByAdmin(petId);
+	}
 }

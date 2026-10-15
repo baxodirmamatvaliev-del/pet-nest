@@ -11,17 +11,17 @@ import { NotificationModule } from './notification/notification.module';
 import { InquiryModule } from './inquiry/inquiry.module';
 
 @Module({
-    imports:[
-        MemberModule,
-        PetModule,
-        ProductModule,
-        CartModule,
-        OrderModule,
-        CommentModule,
-        FollowModule,
-        PaymentModule,
-        NotificationModule,
-        InquiryModule
-    ]
+	imports: [
+		MemberModule,
+		PetModule,
+		ProductModule,
+		CartModule,
+		OrderModule,
+		CommentModule,
+		FollowModule,
+		PaymentModule,
+		NotificationModule,
+		InquiryModule,
+	],
 })
 export class ComponentsModule {}

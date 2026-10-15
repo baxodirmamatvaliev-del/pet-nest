@@ -9,15 +9,15 @@ import { PaymentResolver } from './payment.resolver';
 import { PaymentService } from './payment.service';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: 'Payment', schema: PaymentSchema },
-      { name: 'Order', schema: OrderSchema },
-      { name: 'Product', schema: ProductSchema },
-    ]),
-    AuthModule,
-    OrderModule,
-  ],
-  providers: [PaymentResolver, PaymentService],
+	imports: [
+		MongooseModule.forFeature([
+			{ name: 'Payment', schema: PaymentSchema },
+			{ name: 'Order', schema: OrderSchema },
+			{ name: 'Product', schema: ProductSchema },
+		]),
+		AuthModule,
+		OrderModule,
+	],
+	providers: [PaymentResolver, PaymentService],
 })
 export class PaymentModule {}

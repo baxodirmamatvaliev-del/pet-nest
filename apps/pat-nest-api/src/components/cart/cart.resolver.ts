@@ -9,51 +9,46 @@ import { CartService } from './cart.service';
 
 @Resolver(() => Cart)
 export class CartResolver {
-  constructor(private readonly cartService: CartService) {}
+	constructor(private readonly cartService: CartService) {}
 
-  //mahsulot variantini savatga qo‘shadi, mavjud bo‘lsa sonini oshiradi va stokni tekshiradi.
-  @UseGuards(AuthGuard)
-  @Mutation(() => Cart)
-  public async addToCart(
-    @Args('input') input: AddToCartInput,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Cart> {
-    console.log('Mutation: addToCart');
-    return await this.cartService.addToCart(memberId, input);
-  }
+	//mahsulot variantini savatga qo‘shadi, mavjud bo‘lsa sonini oshiradi va stokni tekshiradi.
+	@UseGuards(AuthGuard)
+	@Mutation(() => Cart)
+	public async addToCart(
+		@Args('input') input: AddToCartInput,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Cart> {
+		return await this.cartService.addToCart(memberId, input);
+	}
 
-  //foydalanuvchining savatini joriy narxlar bilan qaytaradi.
-  @UseGuards(AuthGuard)
-  @Query(() => Cart)
-  public async getMyCart(@AuthMember('_id') memberId: Types.ObjectId): Promise<Cart> {
-    console.log('Query: getMyCart');
-    return await this.cartService.getMyCart(memberId);
-  }
+	//foydalanuvchining savatini joriy narxlar bilan qaytaradi.
+	@UseGuards(AuthGuard)
+	@Query(() => Cart)
+	public async getMyCart(@AuthMember('_id') memberId: Types.ObjectId): Promise<Cart> {
+		return await this.cartService.getMyCart(memberId);
+	}
 
-  @UseGuards(AuthGuard)
-  @Mutation(() => Cart)
-  public async updateCartItem(
-    @Args('input') input: UpdateCartItemInput,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Cart> {
-    console.log('Mutation: updateCartItem');
-    return await this.cartService.updateCartItem(memberId, input);
-  }
+	@UseGuards(AuthGuard)
+	@Mutation(() => Cart)
+	public async updateCartItem(
+		@Args('input') input: UpdateCartItemInput,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Cart> {
+		return await this.cartService.updateCartItem(memberId, input);
+	}
 
-  @UseGuards(AuthGuard)
-  @Mutation(() => Cart)
-  public async removeCartItem(
-    @Args('input') input: RemoveCartItemInput,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Cart> {
-    console.log('Mutation: removeCartItem');
-    return await this.cartService.removeCartItem(memberId, input);
-  }
+	@UseGuards(AuthGuard)
+	@Mutation(() => Cart)
+	public async removeCartItem(
+		@Args('input') input: RemoveCartItemInput,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Cart> {
+		return await this.cartService.removeCartItem(memberId, input);
+	}
 
-  @UseGuards(AuthGuard)
-  @Mutation(() => Cart)
-  public async clearCart(@AuthMember('_id') memberId: Types.ObjectId): Promise<Cart> {
-    console.log('Mutation: clearCart');
-    return await this.cartService.clearCart(memberId);
-  }
+	@UseGuards(AuthGuard)
+	@Mutation(() => Cart)
+	public async clearCart(@AuthMember('_id') memberId: Types.ObjectId): Promise<Cart> {
+		return await this.cartService.clearCart(memberId);
+	}
 }

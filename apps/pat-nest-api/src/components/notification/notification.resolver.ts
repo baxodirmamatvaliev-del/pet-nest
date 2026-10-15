@@ -10,24 +10,23 @@ import { NotificationService } from './notification.service';
 
 @Resolver()
 export class NotificationResolver {
-  constructor(private readonly notificationService: NotificationService) {}
+	constructor(private readonly notificationService: NotificationService) {}
 
-  @UseGuards(AuthGuard)
-  @Query(() => Notifications)
-  public async getMyNotifications(
-    @Args('input') input: NotificationsInquiry,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Notifications> {
-    console.log('Query: getMyNotifications');
-    return await this.notificationService.getMyNotifications(memberId, input);
-  }
+	@UseGuards(AuthGuard)
+	@Query(() => Notifications)
+	public async getMyNotifications(
+		@Args('input') input: NotificationsInquiry,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Notifications> {
+		return await this.notificationService.getMyNotifications(memberId, input);
+	}
 
-  @UseGuards(AuthGuard)
-  @Mutation(() => Notification)
-  public async readNotification(
-    @Args('notificationId') notificationId: string,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Notification> {
-    return await this.notificationService.readNotification(memberId, shapeIntoMongoObjectId(notificationId));
-  }
+	@UseGuards(AuthGuard)
+	@Mutation(() => Notification)
+	public async readNotification(
+		@Args('notificationId') notificationId: string,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Notification> {
+		return await this.notificationService.readNotification(memberId, shapeIntoMongoObjectId(notificationId));
+	}
 }

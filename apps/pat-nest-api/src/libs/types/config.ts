@@ -7,16 +7,17 @@ export const availablePetSorts = ['createdAt', 'updatedAt', 'petPrice', 'petLike
 export const availableCommentSorts = ['createdAt', 'updatedAt'];
 
 export const shapeIntoMongoObjectId = (target: string | Types.ObjectId): Types.ObjectId => {
-  return typeof target === 'string' ? new Types.ObjectId(target) : target;
+	return typeof target === 'string' ? new Types.ObjectId(target) : target;
 };
 
 export const lookupAuthMemberLiked = (
-  memberId: Types.ObjectId | null,
-  targetRefId: string = '$_id',
-  likeGroup?: LikeGroup,
+	memberId: Types.ObjectId | null,
+	targetRefId: string = '$_id',
+	likeGroup?: LikeGroup,
 ) => {
 	return {
-		$lookup: { //MongoDB’da boshqa collection bilan bog‘lanish boshlanadi
+		$lookup: {
+			//MongoDB’da boshqa collection bilan bog‘lanish boshlanadi
 			from: 'likes', //Ma’lumot likes collection ichidan qidiriladi.
 			let: {
 				localLikeRefId: targetRefId, //qaysi obyekt tekshirilmoqda
@@ -28,9 +29,9 @@ export const lookupAuthMemberLiked = (
 					$match: {
 						$expr: {
 							$and: [
-								{ $eq: ['$likeRefId', '$$localLikeRefId'] },//Bu like yozuvini ikki shart bilan qidiradi
-									{ $eq: ['$memberId', '$$localMemberId'] }, //kkalasi ham mos kelsa, demak shu foydalanuvchi shu obyektga like bosgan.
-									...(likeGroup ? [{ $eq: ['$likeGroup', likeGroup] }] : []),
+								{ $eq: ['$likeRefId', '$$localLikeRefId'] }, //Bu like yozuvini ikki shart bilan qidiradi
+								{ $eq: ['$memberId', '$$localMemberId'] }, //kkalasi ham mos kelsa, demak shu foydalanuvchi shu obyektga like bosgan.
+								...(likeGroup ? [{ $eq: ['$likeGroup', likeGroup] }] : []),
 							],
 						},
 					},
@@ -40,8 +41,8 @@ export const lookupAuthMemberLiked = (
 						_id: 0,
 						memberId: 1,
 						likeRefId: 1,
-						myFavorite: '$$localMyFavorite',//Frontendga foydalanuvchi shu obyektga like bosganini ko‘rsatadigan ma’lumot beradi:
-					},//Shu orqali yurakcha qizil yoki faol holatda ko‘rsatiladi
+						myFavorite: '$$localMyFavorite', //Frontendga foydalanuvchi shu obyektga like bosganini ko‘rsatadigan ma’lumot beradi:
+					}, //Shu orqali yurakcha qizil yoki faol holatda ko‘rsatiladi
 				},
 			],
 			as: 'meLiked',
@@ -50,15 +51,12 @@ export const lookupAuthMemberLiked = (
 };
 
 export const lookupPetOwner = {
-  $lookup: {
-    from: 'members',
-    let: { ownerId: '$memberId' },
-    pipeline: [
-      { $match: { $expr: { $eq: ['$_id', '$$ownerId'] } } },
-      { $project: { memberPassword: 0 } },
-    ],
-    as: 'memberData',
-  },
+	$lookup: {
+		from: 'members',
+		let: { ownerId: '$memberId' },
+		pipeline: [{ $match: { $expr: { $eq: ['$_id', '$$ownerId'] } } }, { $project: { memberPassword: 0 } }],
+		as: 'memberData',
+	},
 };
 
 export const lookupMember = lookupPetOwner;
@@ -69,7 +67,7 @@ interface LookupAuthMemberFollowed {
 }
 
 export const lookupAuthMemberFollowed = (input: LookupAuthMemberFollowed) => {
-	const {followerId, followingId} =input
+	const { followerId, followingId } = input;
 	return {
 		$lookup: {
 			from: 'follows',
@@ -82,10 +80,7 @@ export const lookupAuthMemberFollowed = (input: LookupAuthMemberFollowed) => {
 				{
 					$match: {
 						$expr: {
-							$and: [
-								{ $eq: ['$followerId', '$$localFollowerId'] },
-								{ $eq: ['$followingId', '$$localFollowingId'] },
-							],
+							$and: [{ $eq: ['$followerId', '$$localFollowerId'] }, { $eq: ['$followingId', '$$localFollowingId'] }],
 						},
 					},
 				},
@@ -104,25 +99,19 @@ export const lookupAuthMemberFollowed = (input: LookupAuthMemberFollowed) => {
 };
 
 export const lookupFollowingData = {
-  $lookup: {
-    from: 'members',
-    let: { memberId: '$followingId' },
-    pipeline: [
-      { $match: { $expr: { $eq: ['$_id', '$$memberId'] } } },
-      { $project: { memberPassword: 0 } },
-    ],
-    as: 'followingData',
-  },
+	$lookup: {
+		from: 'members',
+		let: { memberId: '$followingId' },
+		pipeline: [{ $match: { $expr: { $eq: ['$_id', '$$memberId'] } } }, { $project: { memberPassword: 0 } }],
+		as: 'followingData',
+	},
 };
 
 export const lookupFollowerData = {
-  $lookup: {
-    from: 'members',
-    let: { memberId: '$followerId' },
-    pipeline: [
-      { $match: { $expr: { $eq: ['$_id', '$$memberId'] } } },
-      { $project: { memberPassword: 0 } },
-    ],
-    as: 'followerData',
-  },
+	$lookup: {
+		from: 'members',
+		let: { memberId: '$followerId' },
+		pipeline: [{ $match: { $expr: { $eq: ['$_id', '$$memberId'] } } }, { $project: { memberPassword: 0 } }],
+		as: 'followerData',
+	},
 };

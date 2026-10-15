@@ -8,13 +8,13 @@ import { FollowResolver } from './follow.resolver';
 import { FollowService } from './follow.service';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: 'Follow', schema: FollowSchema }]),
-    AuthModule,
-    MemberModule,
-    NotificationModule,
-  ],
-  providers: [FollowResolver, FollowService],
-  exports: [FollowService],
+	imports: [
+		MongooseModule.forFeature([{ name: 'Follow', schema: FollowSchema }]),
+		AuthModule,
+		MemberModule,
+		NotificationModule,
+	],
+	providers: [FollowResolver, FollowService],
+	exports: [FollowService],
 })
 export class FollowModule {}

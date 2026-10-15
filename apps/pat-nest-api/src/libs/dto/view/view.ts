@@ -4,21 +4,21 @@ import { ViewGroup } from '../../enums/view.enum';
 
 @ObjectType()
 export class View {
-  @Field(() => ID)
-  _id: Types.ObjectId;
+	@Field(() => ID)
+	_id: Types.ObjectId;
 
-  @Field(() => ViewGroup)
-  viewGroup: ViewGroup;
+	@Field(() => ViewGroup)
+	viewGroup: ViewGroup;
 
-  @Field(() => ID)
-  viewRefId: Types.ObjectId;
+	@Field(() => ID)
+	viewRefId: Types.ObjectId;
 
-  @Field(() => ID)
-  memberId: Types.ObjectId;
+	@Field(() => ID)
+	memberId: Types.ObjectId;
 
-  @Field()
-  createdAt: Date;
+	@Field()
+	createdAt: Date;
 
-  @Field()
-  updatedAt: Date;
+	@Field()
+	updatedAt: Date;
 }

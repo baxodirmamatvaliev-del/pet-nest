@@ -5,72 +5,72 @@ import { MeLiked } from '../like/like';
 
 @ObjectType()
 export class MeFollowed {
-  @Field(() => ID)
-  followingId: Types.ObjectId;
+	@Field(() => ID)
+	followingId: Types.ObjectId;
 
-  @Field(() => ID)
-  followerId: Types.ObjectId;
+	@Field(() => ID)
+	followerId: Types.ObjectId;
 
-  @Field()
-  myFollowing: boolean;
+	@Field()
+	myFollowing: boolean;
 }
 
 @ObjectType()
 export class Follow {
-  @Field(() => ID)
-  _id: Types.ObjectId;
+	@Field(() => ID)
+	_id: Types.ObjectId;
 
-  @Field(() => ID)
-  followingId: Types.ObjectId;
+	@Field(() => ID)
+	followingId: Types.ObjectId;
 
-  @Field(() => ID)
-  followerId: Types.ObjectId;
+	@Field(() => ID)
+	followerId: Types.ObjectId;
 
-  @Field()
-  createdAt: Date;
+	@Field()
+	createdAt: Date;
 
-  @Field()
-  updatedAt: Date;
+	@Field()
+	updatedAt: Date;
 }
 
 @ObjectType()
 export class Following extends Follow {
-  @Field(() => [MeLiked], { nullable: true })
-  meLiked?: MeLiked[];
+	@Field(() => [MeLiked], { nullable: true })
+	meLiked?: MeLiked[];
 
-  @Field(() => [MeFollowed], { nullable: true })
-  meFollowed?: MeFollowed[];
+	@Field(() => [MeFollowed], { nullable: true })
+	meFollowed?: MeFollowed[];
 
-  @Field(() => Member, { nullable: true })
-  followingData?: Member;
+	@Field(() => Member, { nullable: true })
+	followingData?: Member;
 }
 
 @ObjectType()
 export class Follower extends Follow {
-  @Field(() => [MeLiked], { nullable: true })
-  meLiked?: MeLiked[];
+	@Field(() => [MeLiked], { nullable: true })
+	meLiked?: MeLiked[];
 
-  @Field(() => [MeFollowed], { nullable: true })
-  meFollowed?: MeFollowed[];
+	@Field(() => [MeFollowed], { nullable: true })
+	meFollowed?: MeFollowed[];
 
-  @Field(() => Member, { nullable: true })
-  followerData?: Member;
+	@Field(() => Member, { nullable: true })
+	followerData?: Member;
 }
 
 @ObjectType()
 export class Followings {
-  @Field(() => [Following])
-  list: Following[];
+	@Field(() => [Following])
+	list: Following[];
 
-  @Field(() => [TotalCounter])
-  metaCounter: TotalCounter[];
+	@Field(() => [TotalCounter])
+	metaCounter: TotalCounter[];
 }
 
 @ObjectType()
 export class Followers {
-  @Field(() => [Follower])
-  list: Follower[];
+	@Field(() => [Follower])
+	list: Follower[];
 
-  @Field(() => [TotalCounter])
-  metaCounter: TotalCounter[];
+	@Field(() => [TotalCounter])
+	metaCounter: TotalCounter[];
 }

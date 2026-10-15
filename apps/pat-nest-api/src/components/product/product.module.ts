@@ -8,8 +8,13 @@ import { ProductResolver } from './product.resolver';
 import { ProductService } from './product.service';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: 'Product', schema: ProductSchema }]), AuthModule, LikeModule, ViewModule],
-  providers: [ProductResolver, ProductService],
-  exports: [ProductService],
+	imports: [
+		MongooseModule.forFeature([{ name: 'Product', schema: ProductSchema }]),
+		AuthModule,
+		LikeModule,
+		ViewModule,
+	],
+	providers: [ProductResolver, ProductService],
+	exports: [ProductService],
 })
 export class ProductModule {}

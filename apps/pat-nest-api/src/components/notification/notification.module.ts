@@ -7,12 +7,12 @@ import { NotificationResolver } from './notification.resolver';
 import { NotificationService } from './notification.service';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: 'Notification', schema: NotificationSchema }]),
-    AuthModule,
-    SocketModule,
-  ],
-  providers: [NotificationResolver, NotificationService],
-  exports: [NotificationService],
+	imports: [
+		MongooseModule.forFeature([{ name: 'Notification', schema: NotificationSchema }]),
+		AuthModule,
+		SocketModule,
+	],
+	providers: [NotificationResolver, NotificationService],
+	exports: [NotificationService],
 })
 export class NotificationModule {}

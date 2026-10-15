@@ -1,4 +1,6 @@
 import { BadRequestException, CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { GqlExecutionContext } from '@nestjs/graphql';
+import type { AuthContext } from '../../../libs/types/auth';
 import { AuthService } from '../auth.service';
 import { Message } from '../../../libs/enums/common.enum';
 
@@ -6,27 +8,24 @@ import { Message } from '../../../libs/enums/common.enum';
 export class AuthGuard implements CanActivate {
 	constructor(private authService: AuthService) {}
 
-	async canActivate(context: ExecutionContext | any): Promise<boolean> {
-		console.info('--- @guard() Authentication [AuthGuard] ---');
-
-		if (context.contextType === 'graphql') {
-			const request = context.getArgByIndex(2).req;
+	async canActivate(context: ExecutionContext): Promise<boolean> {
+		if (context.getType<string>() === 'graphql') {
+			const request = GqlExecutionContext.create(context).getContext<AuthContext>().req;
 
 			const bearerToken = request.headers.authorization;
 			if (!bearerToken) throw new BadRequestException(Message.TOKEN_NOT_EXIST);
 			if (!bearerToken.startsWith('Bearer ')) throw new UnauthorizedException(Message.NOT_AUTHENTICATED);
-			
+
 			const token = bearerToken.split(' ')[1],
 				authMember = await this.authService.verifyToken(token);
 			if (!authMember) throw new UnauthorizedException(Message.NOT_AUTHENTICATED);
 
-			console.log('memberNick[auth] =>', authMember.memberNick);
 			request.body ??= {};
 			request.body.authMember = authMember;
 
 			return true;
 		}
-       return true;
+		return true;
 		// description => http, rpc, gprs and etc are ignored
 	}
 }

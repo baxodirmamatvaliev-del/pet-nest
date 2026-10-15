@@ -1,18 +1,11 @@
 import { Controller, Get, Logger } from '@nestjs/common';
 import { Cron, Timeout } from '@nestjs/schedule';
 import { PatBatchService } from './pat-batch.service';
-import {
-	BATCH_ROLLBACK,
-	BATCH_TIME_ZONE,
-	BATCH_TOP_AGENTS,
-	BATCH_TOP_PETS,
-	BATCH_TOP_PRODUCTS,
-} from './lib/config';
-
+import { BATCH_ROLLBACK, BATCH_TIME_ZONE, BATCH_TOP_AGENTS, BATCH_TOP_PETS, BATCH_TOP_PRODUCTS } from './lib/config';
 
 /****************
 Scheduled Batch Processing
-*****************/ 
+*****************/
 @Controller()
 export class PatBatchController {
 	private readonly logger = new Logger(PatBatchController.name);
@@ -29,8 +22,8 @@ export class PatBatchController {
 		try {
 			this.logger.debug(`${BATCH_ROLLBACK} EXECUTED!`);
 			await this.patBatchService.batchRollback();
-		} catch (err) {
-			this.logger.error(BATCH_ROLLBACK, err.stack);
+		} catch (err: unknown) {
+			this.logger.error(BATCH_ROLLBACK, err instanceof Error ? err.stack : String(err));
 		}
 	}
 
@@ -39,8 +32,8 @@ export class PatBatchController {
 		try {
 			this.logger.debug(`${BATCH_TOP_PETS} EXECUTED!`);
 			await this.patBatchService.batchTopPets();
-		} catch (err) {
-			this.logger.error(BATCH_TOP_PETS, err.stack);
+		} catch (err: unknown) {
+			this.logger.error(BATCH_TOP_PETS, err instanceof Error ? err.stack : String(err));
 		}
 	}
 
@@ -49,8 +42,8 @@ export class PatBatchController {
 		try {
 			this.logger.debug(`${BATCH_TOP_AGENTS} EXECUTED!`);
 			await this.patBatchService.batchTopAgents();
-		} catch (err) {
-			this.logger.error(BATCH_TOP_AGENTS, err.stack);
+		} catch (err: unknown) {
+			this.logger.error(BATCH_TOP_AGENTS, err instanceof Error ? err.stack : String(err));
 		}
 	}
 
@@ -59,8 +52,8 @@ export class PatBatchController {
 		try {
 			this.logger.debug(`${BATCH_TOP_PRODUCTS} EXECUTED!`);
 			await this.patBatchService.batchTopProducts();
-		} catch (err) {
-			this.logger.error(BATCH_TOP_PRODUCTS, err.stack);
+		} catch (err: unknown) {
+			this.logger.error(BATCH_TOP_PRODUCTS, err instanceof Error ? err.stack : String(err));
 		}
 	}
 

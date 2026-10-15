@@ -13,43 +13,43 @@ import { InquiryService } from './inquiry.service';
 
 @Resolver(() => Inquiry)
 export class InquiryResolver {
-  constructor(private readonly inquiryService: InquiryService) {}
+	constructor(private readonly inquiryService: InquiryService) {}
 
-  @UseGuards(WithoutGuard)
-  @Query(() => [SupportRecipient])
-  public async getSupportRecipients(): Promise<SupportRecipient[]> {
-    return await this.inquiryService.getSupportRecipients();
-  }
+	@UseGuards(WithoutGuard)
+	@Query(() => [SupportRecipient])
+	public async getSupportRecipients(): Promise<SupportRecipient[]> {
+		return await this.inquiryService.getSupportRecipients();
+	}
 
-  @UseGuards(AuthGuard)
-  @Mutation(() => Inquiry)
-  public async createInquiry(
-    @Args('input') input: InquiryInput,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Inquiry> {
-    return await this.inquiryService.createInquiry(memberId, input);
-  }
+	@UseGuards(AuthGuard)
+	@Mutation(() => Inquiry)
+	public async createInquiry(
+		@Args('input') input: InquiryInput,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Inquiry> {
+		return await this.inquiryService.createInquiry(memberId, input);
+	}
 
-  @UseGuards(AuthGuard)
-  @Query(() => [Inquiry])
-  public async getMyInquiries(@AuthMember('_id') memberId: Types.ObjectId): Promise<Inquiry[]> {
-    return await this.inquiryService.getMyInquiries(memberId);
-  }
+	@UseGuards(AuthGuard)
+	@Query(() => [Inquiry])
+	public async getMyInquiries(@AuthMember('_id') memberId: Types.ObjectId): Promise<Inquiry[]> {
+		return await this.inquiryService.getMyInquiries(memberId);
+	}
 
-  @Roles(MemberType.AGENT, MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Query(() => [Inquiry])
-  public async getAssignedInquiries(@AuthMember('_id') memberId: Types.ObjectId): Promise<Inquiry[]> {
-    return await this.inquiryService.getAssignedInquiries(memberId);
-  }
+	@Roles(MemberType.AGENT, MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Query(() => [Inquiry])
+	public async getAssignedInquiries(@AuthMember('_id') memberId: Types.ObjectId): Promise<Inquiry[]> {
+		return await this.inquiryService.getAssignedInquiries(memberId);
+	}
 
-  @Roles(MemberType.AGENT, MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Mutation(() => Inquiry)
-  public async answerInquiry(
-    @Args('input') input: AnswerInquiryInput,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Inquiry> {
-    return await this.inquiryService.answerInquiry(memberId, input);
-  }
+	@Roles(MemberType.AGENT, MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Mutation(() => Inquiry)
+	public async answerInquiry(
+		@Args('input') input: AnswerInquiryInput,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Inquiry> {
+		return await this.inquiryService.answerInquiry(memberId, input);
+	}
 }

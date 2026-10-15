@@ -4,33 +4,33 @@ import { PaymentMethod, PaymentStatus } from '../../enums/payment.enum';
 
 @ObjectType()
 export class Payment {
-  @Field(() => ID)
-  _id: Types.ObjectId;
+	@Field(() => ID)
+	_id: Types.ObjectId;
 
-  @Field(() => ID)
-  memberId: Types.ObjectId;
+	@Field(() => ID)
+	memberId: Types.ObjectId;
 
-  @Field(() => ID)
-  orderId: Types.ObjectId;
+	@Field(() => ID)
+	orderId: Types.ObjectId;
 
-  @Field(() => PaymentMethod)
-  paymentMethod: PaymentMethod;
+	@Field(() => PaymentMethod)
+	paymentMethod: PaymentMethod;
 
-  @Field(() => PaymentStatus)
-  paymentStatus: PaymentStatus;
+	@Field(() => PaymentStatus)
+	paymentStatus: PaymentStatus;
 
-  @Field(() => Int)
-  paymentAmount: number;
+	@Field(() => Int)
+	paymentAmount: number;
 
-  @Field({ nullable: true })
-  confirmedAt?: Date;
+	@Field({ nullable: true })
+	confirmedAt?: Date;
 
-  @Field({ nullable: true })
-  cancelledAt?: Date;
+	@Field({ nullable: true })
+	cancelledAt?: Date;
 
-  @Field()
-  createdAt: Date;
+	@Field()
+	createdAt: Date;
 
-  @Field()
-  updatedAt: Date;
+	@Field()
+	updatedAt: Date;
 }

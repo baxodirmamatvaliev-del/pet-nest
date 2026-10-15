@@ -1,15 +1,15 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { GqlExecutionContext } from '@nestjs/graphql';
+import type { AuthContext } from '../../../libs/types/auth';
 import { AuthService } from '../auth.service';
 
 @Injectable()
 export class WithoutGuard implements CanActivate {
 	constructor(private authService: AuthService) {}
 
-	async canActivate(context: ExecutionContext | any): Promise<boolean> {
-		console.info('--- @guard() Authentication [WithoutGuard] ---');
-
-		if (context.contextType === 'graphql') {
-			const request = context.getArgByIndex(2).req,
+	async canActivate(context: ExecutionContext): Promise<boolean> {
+		if (context.getType<string>() === 'graphql') {
+			const request = GqlExecutionContext.create(context).getContext<AuthContext>().req,
 				bearerToken = request.headers.authorization;
 			request.body ??= {};
 
@@ -18,15 +18,14 @@ export class WithoutGuard implements CanActivate {
 					const token = bearerToken.split(' ')[1],
 						authMember = await this.authService.verifyToken(token);
 					request.body.authMember = authMember;
-				} catch (err) {
+				} catch {
 					request.body.authMember = null;
 				}
 			} else request.body.authMember = null;
 
-			console.log('memberNick[without] =>', request.body.authMember?.memberNick ?? 'none');
 			return true;
 		}
-        return true;
+		return true;
 		// description => http, rpc, gprs and etc are ignored
 	}
 }

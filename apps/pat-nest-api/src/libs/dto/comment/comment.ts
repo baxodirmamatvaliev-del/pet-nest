@@ -5,42 +5,42 @@ import { Member, TotalCounter } from '../member/member';
 
 @ObjectType()
 export class Comment {
-  @Field(() => ID)
-  _id: Types.ObjectId;
+	@Field(() => ID)
+	_id: Types.ObjectId;
 
-  @Field(() => CommentStatus)
-  commentStatus: CommentStatus;
+	@Field(() => CommentStatus)
+	commentStatus: CommentStatus;
 
-  @Field(() => CommentGroup)
-  commentGroup: CommentGroup;
+	@Field(() => CommentGroup)
+	commentGroup: CommentGroup;
 
-  @Field()
-  commentContent: string;
+	@Field()
+	commentContent: string;
 
-  @Field(() => Int, { nullable: true })
-  commentRating?: number;
+	@Field(() => Int, { nullable: true })
+	commentRating?: number;
 
-  @Field(() => ID)
-  commentRefId: Types.ObjectId;
+	@Field(() => ID)
+	commentRefId: Types.ObjectId;
 
-  @Field(() => ID)
-  memberId: Types.ObjectId;
+	@Field(() => ID)
+	memberId: Types.ObjectId;
 
-  @Field()
-  createdAt: Date;
+	@Field()
+	createdAt: Date;
 
-  @Field()
-  updatedAt: Date;
+	@Field()
+	updatedAt: Date;
 
-  @Field(() => Member, { nullable: true })
-  memberData?: Member;
+	@Field(() => Member, { nullable: true })
+	memberData?: Member;
 }
 
 @ObjectType()
 export class Comments {
-  @Field(() => [Comment])
-  list: Comment[];
+	@Field(() => [Comment])
+	list: Comment[];
 
-  @Field(() => [TotalCounter])
-  metaCounter: TotalCounter[];
+	@Field(() => [TotalCounter])
+	metaCounter: TotalCounter[];
 }

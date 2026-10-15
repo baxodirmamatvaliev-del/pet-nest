@@ -8,14 +8,14 @@ import { InquiryResolver } from './inquiry.resolver';
 import { InquiryService } from './inquiry.service';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: 'Inquiry', schema: InquirySchema },
-      { name: 'Member', schema: MemberSchema },
-    ]),
-    AuthModule,
-    NotificationModule,
-  ],
-  providers: [InquiryResolver, InquiryService],
+	imports: [
+		MongooseModule.forFeature([
+			{ name: 'Inquiry', schema: InquirySchema },
+			{ name: 'Member', schema: MemberSchema },
+		]),
+		AuthModule,
+		NotificationModule,
+	],
+	providers: [InquiryResolver, InquiryService],
 })
 export class InquiryModule {}

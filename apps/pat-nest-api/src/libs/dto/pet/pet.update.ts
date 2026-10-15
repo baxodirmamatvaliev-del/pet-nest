@@ -5,12 +5,12 @@ import { PetInput } from './pet.input';
 
 @InputType()
 export class PetUpdateInput extends PartialType(PetInput) {
-  @Field(() => ID)
-  @IsMongoId()
-  _id: string;
+	@Field(() => ID)
+	@IsMongoId()
+	_id: string;
 
-  @Field(() => PetStatus, { nullable: true })
-  @IsOptional()
-  @IsEnum(PetStatus)
-  petStatus?: PetStatus;
+	@Field(() => PetStatus, { nullable: true })
+	@IsOptional()
+	@IsEnum(PetStatus)
+	petStatus?: PetStatus;
 }

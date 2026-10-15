@@ -9,7 +9,13 @@ import { ViewModule } from '../view/view.module';
 import { LikeModule } from '../like/like.module';
 
 @Module({
-	imports: [MongooseModule.forFeature([{ name: 'Pet', schema: PetSchema }]), AuthModule, MemberModule, ViewModule, LikeModule],
+	imports: [
+		MongooseModule.forFeature([{ name: 'Pet', schema: PetSchema }]),
+		AuthModule,
+		MemberModule,
+		ViewModule,
+		LikeModule,
+	],
 	providers: [PetResolver, PetService],
 	exports: [PetService],
 })

@@ -7,14 +7,14 @@ import { CartResolver } from './cart.resolver';
 import { CartService } from './cart.service';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: 'Cart', schema: CartSchema },
-      { name: 'Product', schema: ProductSchema },
-    ]),
-    AuthModule,
-  ],
-  providers: [CartResolver, CartService],
-  exports: [CartService],
+	imports: [
+		MongooseModule.forFeature([
+			{ name: 'Cart', schema: CartSchema },
+			{ name: 'Product', schema: ProductSchema },
+		]),
+		AuthModule,
+	],
+	providers: [CartResolver, CartService],
+	exports: [CartService],
 })
 export class CartModule {}

@@ -6,87 +6,87 @@ import { MeLiked } from '../like/like';
 
 @ObjectType()
 export class ProductVariant {
-  @Field()
-  sku: string;
+	@Field()
+	sku: string;
 
-  @Field({ nullable: true })
-  color?: string;
+	@Field({ nullable: true })
+	color?: string;
 
-  @Field({ nullable: true })
-  size?: string;
+	@Field({ nullable: true })
+	size?: string;
 
-  @Field(() => Int)
-  price: number;
+	@Field(() => Int)
+	price: number;
 
-  @Field(() => Int)
-  stock: number;
+	@Field(() => Int)
+	stock: number;
 }
 
 @ObjectType()
 export class Product {
-  @Field(() => ID)
-  _id: Types.ObjectId;
+	@Field(() => ID)
+	_id: Types.ObjectId;
 
-  @Field(() => ID)
-  memberId: Types.ObjectId;
+	@Field(() => ID)
+	memberId: Types.ObjectId;
 
-  @Field(() => ProductCategory)
-  productCategory: ProductCategory;
+	@Field(() => ProductCategory)
+	productCategory: ProductCategory;
 
-  @Field(() => ProductType)
-  productType: ProductType;
+	@Field(() => ProductType)
+	productType: ProductType;
 
-  @Field(() => ProductStatus)
-  productStatus: ProductStatus;
+	@Field(() => ProductStatus)
+	productStatus: ProductStatus;
 
-  @Field()
-  productName: string;
+	@Field()
+	productName: string;
 
-  @Field({ nullable: true })
-  productDesc?: string;
+	@Field({ nullable: true })
+	productDesc?: string;
 
-  @Field(() => [String])
-  productImages: string[];
+	@Field(() => [String])
+	productImages: string[];
 
-  @Field(() => [ProductVariant])
-  productVariants: ProductVariant[];
+	@Field(() => [ProductVariant])
+	productVariants: ProductVariant[];
 
-  @Field(() => Float)
-  productRating: number;
+	@Field(() => Float)
+	productRating: number;
 
-  @Field(() => Int)
-  productReviews: number;
+	@Field(() => Int)
+	productReviews: number;
 
-  @Field(() => Int)
-  productSold: number;
+	@Field(() => Int)
+	productSold: number;
 
-  @Field(() => Float)
-  productRank: number;
+	@Field(() => Float)
+	productRank: number;
 
-  @Field(() => Int, { nullable: true })
-  productLikes?: number;
+	@Field(() => Int, { nullable: true })
+	productLikes?: number;
 
-  @Field(() => Int, { nullable: true })
-  productViews?: number;
+	@Field(() => Int, { nullable: true })
+	productViews?: number;
 
-  @Field({ nullable: true })
-  deletedAt?: Date;
+	@Field({ nullable: true })
+	deletedAt?: Date;
 
-  @Field()
-  createdAt: Date;
+	@Field()
+	createdAt: Date;
 
-  @Field()
-  updatedAt: Date;
+	@Field()
+	updatedAt: Date;
 
-  @Field(() => [MeLiked], { nullable: true })
-  meLiked?: MeLiked[];
+	@Field(() => [MeLiked], { nullable: true })
+	meLiked?: MeLiked[];
 }
 
 @ObjectType()
 export class Products {
-  @Field(() => [Product])
-  list: Product[];
+	@Field(() => [Product])
+	list: Product[];
 
-  @Field(() => [TotalCounter])
-  metaCounter: TotalCounter[];
+	@Field(() => [TotalCounter])
+	metaCounter: TotalCounter[];
 }

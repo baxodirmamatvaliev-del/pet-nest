@@ -9,16 +9,16 @@ import { OrderResolver } from './order.resolver';
 import { OrderService } from './order.service';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: 'Order', schema: OrderSchema },
-      { name: 'Cart', schema: CartSchema },
-      { name: 'Product', schema: ProductSchema },
-    ]),
-    AuthModule,
-    NotificationModule,
-  ],
-  providers: [OrderResolver, OrderService],
-  exports: [OrderService],
+	imports: [
+		MongooseModule.forFeature([
+			{ name: 'Order', schema: OrderSchema },
+			{ name: 'Cart', schema: CartSchema },
+			{ name: 'Product', schema: ProductSchema },
+		]),
+		AuthModule,
+		NotificationModule,
+	],
+	providers: [OrderResolver, OrderService],
+	exports: [OrderService],
 })
 export class OrderModule {}

@@ -10,16 +10,16 @@ import FollowSchema from '../../schemas/Follow.model';
 import { ImageUploadService } from './image-upload.service';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: 'Member', schema: MemberSchema },
-      { name: 'Follow', schema: FollowSchema },
-    ]),
-    AuthModule,
-    ViewModule,
-    LikeModule,
-  ],
-  providers: [MemberResolver, MemberService, ImageUploadService],
-  exports: [MemberService],
+	imports: [
+		MongooseModule.forFeature([
+			{ name: 'Member', schema: MemberSchema },
+			{ name: 'Follow', schema: FollowSchema },
+		]),
+		AuthModule,
+		ViewModule,
+		LikeModule,
+	],
+	providers: [MemberResolver, MemberService, ImageUploadService],
+	exports: [MemberService],
 })
 export class MemberModule {}

@@ -4,25 +4,25 @@ import { LikeGroup } from '../../enums/like.enum';
 
 @InputType()
 export class LikeInput {
-  @Field(() => ID)
-  @IsMongoId()
-  likeRefId: string;
+	@Field(() => ID)
+	@IsMongoId()
+	likeRefId: string;
 
-  @Field(() => LikeGroup)
-  @IsEnum(LikeGroup)
-  likeGroup: LikeGroup;
+	@Field(() => LikeGroup)
+	@IsEnum(LikeGroup)
+	likeGroup: LikeGroup;
 }
 
 @InputType()
 export class FavoriteInquiry {
-  @Field(() => Int)
-  @IsInt()
-  @Min(1)
-  page: number;
+	@Field(() => Int)
+	@IsInt()
+	@Min(1)
+	page: number;
 
-  @Field(() => Int)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit: number;
+	@Field(() => Int)
+	@IsInt()
+	@Min(1)
+	@Max(100)
+	limit: number;
 }

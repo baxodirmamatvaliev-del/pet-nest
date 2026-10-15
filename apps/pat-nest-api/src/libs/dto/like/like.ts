@@ -4,33 +4,33 @@ import { LikeGroup } from '../../enums/like.enum';
 
 @ObjectType()
 export class MeLiked {
-  @Field(() => ID)
-  memberId: Types.ObjectId;
+	@Field(() => ID)
+	memberId: Types.ObjectId;
 
-  @Field(() => ID)
-  likeRefId: Types.ObjectId;
+	@Field(() => ID)
+	likeRefId: Types.ObjectId;
 
-  @Field()
-  myFavorite: boolean;
+	@Field()
+	myFavorite: boolean;
 }
 
 @ObjectType()
 export class Like {
-  @Field(() => ID)
-  _id: Types.ObjectId;
+	@Field(() => ID)
+	_id: Types.ObjectId;
 
-  @Field(() => LikeGroup)
-  likeGroup: LikeGroup;
+	@Field(() => LikeGroup)
+	likeGroup: LikeGroup;
 
-  @Field(() => ID)
-  likeRefId: Types.ObjectId;
+	@Field(() => ID)
+	likeRefId: Types.ObjectId;
 
-  @Field(() => ID)
-  memberId: Types.ObjectId;
+	@Field(() => ID)
+	memberId: Types.ObjectId;
 
-  @Field()
-  createdAt: Date;
+	@Field()
+	createdAt: Date;
 
-  @Field()
-  updatedAt: Date;
+	@Field()
+	updatedAt: Date;
 }

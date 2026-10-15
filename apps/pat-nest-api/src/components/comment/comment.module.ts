@@ -11,18 +11,18 @@ import { CommentResolver } from './comment.resolver';
 import { CommentService } from './comment.service';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: 'Comment', schema: CommentSchema },
-      { name: 'BoardArticle', schema: BoardArticleSchema },
-      { name: 'Product', schema: ProductSchema },
-    ]),
-    AuthModule,
-    MemberModule,
-    NotificationModule,
-    PetModule,
-  ],
-  providers: [CommentResolver, CommentService],
-  exports: [CommentService],
+	imports: [
+		MongooseModule.forFeature([
+			{ name: 'Comment', schema: CommentSchema },
+			{ name: 'BoardArticle', schema: BoardArticleSchema },
+			{ name: 'Product', schema: ProductSchema },
+		]),
+		AuthModule,
+		MemberModule,
+		NotificationModule,
+		PetModule,
+	],
+	providers: [CommentResolver, CommentService],
+	exports: [CommentService],
 })
 export class CommentModule {}

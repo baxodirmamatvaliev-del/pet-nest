@@ -15,56 +15,53 @@ import { CommentService } from './comment.service';
 
 @Resolver(() => Comment)
 export class CommentResolver {
-  constructor(private readonly commentService: CommentService) {}
+	constructor(private readonly commentService: CommentService) {}
 
-  //foydalanuvchi Pet, Member yoki Article uchun izoh yozadi va comment soni bittaga oshadi.
-  @UseGuards(AuthGuard)
-  @Mutation(() => Comment)
-  public async createComment(
-    @Args('input') input: CommentInput,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Comment> {
-    console.log('Mutation: createComment');
-    return await this.commentService.createComment(memberId, input);
-  }
+	//foydalanuvchi Pet, Member yoki Article uchun izoh yozadi va comment soni bittaga oshadi.
+	@UseGuards(AuthGuard)
+	@Mutation(() => Comment)
+	public async createComment(
+		@Args('input') input: CommentInput,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Comment> {
+		return await this.commentService.createComment(memberId, input);
+	}
 
-  //foydalanuvchi faqat o‘zining faol izohini tahrirlaydi. 
-  @UseGuards(AuthGuard)
-  @Mutation(() => Comment)
-  public async updateComment(
-    @Args('input') input: CommentUpdateInput,
-    @AuthMember('_id') memberId: Types.ObjectId,
-  ): Promise<Comment> {
-    console.log('Mutation: updateComment');
-    return await this.commentService.updateComment(memberId, input);
-  }
+	//foydalanuvchi faqat o‘zining faol izohini tahrirlaydi.
+	@UseGuards(AuthGuard)
+	@Mutation(() => Comment)
+	public async updateComment(
+		@Args('input') input: CommentUpdateInput,
+		@AuthMember('_id') memberId: Types.ObjectId,
+	): Promise<Comment> {
+		return await this.commentService.updateComment(memberId, input);
+	}
 
-  //— tanlangan Pet, Member yoki Article izohlarini sahifalab, muallif ma’lumoti bilan qaytaradi. 
-  @UseGuards(WithoutGuard)
-  @Query(() => Comments)
-  public async getComments(@Args('input')
-   input: CommentsInquiry): Promise<Comments> {
-    console.log('Query: getComments');
-    return await this.commentService.getComments(input);
-  }
+	//— tanlangan Pet, Member yoki Article izohlarini sahifalab, muallif ma’lumoti bilan qaytaradi.
+	@UseGuards(WithoutGuard)
+	@Query(() => Comments)
+	public async getComments(
+		@Args('input')
+		input: CommentsInquiry,
+	): Promise<Comments> {
+		return await this.commentService.getComments(input);
+	}
 
-  @Roles(MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Query(() => Comments)
-  public async getAllCommentsByAdmin(
-    @Args('input') input: AdminCommentsInquiry,
-  ): Promise<Comments> {
-    console.log('Query: getAllCommentsByAdmin');
-    return await this.commentService.getAllCommentsByAdmin(input);
-  }
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Query(() => Comments)
+	public async getAllCommentsByAdmin(@Args('input') input: AdminCommentsInquiry): Promise<Comments> {
+		return await this.commentService.getAllCommentsByAdmin(input);
+	}
 
-  @Roles(MemberType.ADMIN)
-  @UseGuards(RolesGuard)
-  @Mutation(() => Comment)
-  public async removeCommentByAdmin(@Args('commentId') 
-  input: string): Promise<Comment> {
-    console.log('Mutation: removeCommentByAdmin');
-    const commentId = shapeIntoMongoObjectId(input);
-    return await this.commentService.removeCommentByAdmin(commentId);
-  }
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Mutation(() => Comment)
+	public async removeCommentByAdmin(
+		@Args('commentId')
+		input: string,
+	): Promise<Comment> {
+		const commentId = shapeIntoMongoObjectId(input);
+		return await this.commentService.removeCommentByAdmin(commentId);
+	}
 }

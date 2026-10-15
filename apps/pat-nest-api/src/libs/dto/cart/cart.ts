@@ -4,39 +4,39 @@ import { Product } from '../product/product';
 
 @ObjectType()
 export class CartItem {
-  @Field(() => ID)
-  productId: Types.ObjectId;
+	@Field(() => ID)
+	productId: Types.ObjectId;
 
-  @Field()
-  sku: string;
+	@Field()
+	sku: string;
 
-  @Field(() => Int)
-  quantity: number;
+	@Field(() => Int)
+	quantity: number;
 
-  @Field(() => Product, { nullable: true })
-  productData?: Product | null;
+	@Field(() => Product, { nullable: true })
+	productData?: Product | null;
 
-  @Field(() => Int)
-  unitPrice: number;
+	@Field(() => Int)
+	unitPrice: number;
 
-  @Field(() => Int)
-  subtotal: number;
+	@Field(() => Int)
+	subtotal: number;
 
-  @Field()
-  available: boolean;
+	@Field()
+	available: boolean;
 }
 
 @ObjectType()
 export class Cart {
-  @Field(() => ID)
-  memberId: Types.ObjectId;
+	@Field(() => ID)
+	memberId: Types.ObjectId;
 
-  @Field(() => [CartItem])
-  cartItems: CartItem[];
+	@Field(() => [CartItem])
+	cartItems: CartItem[];
 
-  @Field(() => Int)
-  totalQuantity: number;
+	@Field(() => Int)
+	totalQuantity: number;
 
-  @Field(() => Int)
-  totalAmount: number;
+	@Field(() => Int)
+	totalAmount: number;
 }
