@@ -6,13 +6,14 @@ import { NotificationsInquiry } from '../../libs/dto/notification/notification.i
 import { Message } from '../../libs/enums/common.enum';
 import { NotificationStatus } from '../../libs/enums/notification.enum';
 import { CreateNotification } from '../../libs/types/notification';
-import { SocketGateway } from '../../socket/socket.gateway';
+import { NotificationGateway } from '../../socket/notification.gateway';
 
 @Injectable()
 export class NotificationService {
   constructor(
     @InjectModel('Notification') private readonly notificationModel: Model<Notification>,
-    private readonly socketGateway: SocketGateway,
+    // Bazaga yozilgan bildirishnomani qabul qiluvchiga Socket.IO orqali darhol yuboramiz.
+    private readonly socketGateway: NotificationGateway,
   ) {}
 
   public async createNotification(input: CreateNotification): Promise<Notification> {

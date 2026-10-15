@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { SocketModule } from './socket/socket.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -32,6 +33,8 @@ import type { Request, Response } from 'express';
 		]),
 		ComponentsModule,
 		DatabaseModule,
+		// Live chat va mavjud bildirishnoma xizmatlarini API bilan birga ishga tushiramiz.
+		SocketModule,
 	],
 	controllers: [AppController],
 	providers: [

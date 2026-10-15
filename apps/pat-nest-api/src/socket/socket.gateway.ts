@@ -1,60 +1,121 @@
 import { Logger } from '@nestjs/common';
-import {
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  WebSocketGateway,
-  WebSocketServer,
-} from '@nestjs/websockets';
-import { Types } from 'mongoose';
-import { Server, Socket } from 'socket.io';
+import { OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { Server } from 'ws';
+import { WebSocket } from "ws"
 import { AuthService } from '../components/auth/auth.service';
-import { Notification } from '../libs/dto/notification/notification';
-import { corsOriginHandler } from '../libs/config/environment';
+import type { AuthenticatedMember } from '../components/auth/auth.service';
+import { SkipThrottle } from '@nestjs/throttler';
+import * as url from "url";
+interface MessagePayload { //frontend ga malumotlarni yuborish va qabul qlish uchun
+  event: string, ///event — xabarning turi.
+  text: string,
+  memberData?: AuthenticatedMember | null,
+}
 
-@WebSocketGateway({
-  cors: { origin: corsOriginHandler, credentials: true },
-})
-export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer()
-  private readonly server: Server;
+interface InfoPayload { // Bu online clientlar soni ni hisoblab boshqa cilientlarga korsatish!
+  event: string,
+  totalClients: number,
+  memberData?: AuthenticatedMember | null,
+  action: string;
+}
+@SkipThrottle()
+@WebSocketGateway({ transports: ["websocket"], secure: false}) // transports: ['websocket'] — WebSocket transportidan foydalanishni bildiradi.
+export class SocketGateway  implements OnGatewayInit{
+ private logger: Logger = new Logger("SocketEventsGateway"); //Bu serverdagi hodisalarni terminalga chiqarish uchun ishlatiladi.
+ private summaryClient: number = 0   //Bu hozir nechta client ulanganini saqlaydi.
+ private clientAuthMap = new Map<WebSocket, AuthenticatedMember | null>()
+ private messagesList: MessagePayload[] = [];
 
-  private readonly logger = new Logger(SocketGateway.name);
+ constructor( private authServer: AuthService){}
 
-  constructor(private readonly authService: AuthService) {}
-
-  public async handleConnection(client: Socket): Promise<void> {
-    try {
-      const token = this.getAccessToken(client);
-      const member = await this.authService.verifyToken(token);
-
-      client.data.memberId = member._id.toString();
-      await client.join(client.data.memberId);
-      this.logger.log(`${member.memberNick} connected`);
-    } catch {
-      client.disconnect();
-    }
+ @WebSocketServer()
+ server: Server
+ public afterInit(server: Server) { //afterInit() WebSocket server tayyor bo‘lganda bir marta ishlaydi.
+    this.logger.verbose(`WebSocket Server Initialized & total [${this.summaryClient}]`);
   }
 
-  public handleDisconnect(client: Socket): void {
-    if (client.data.memberId) {
-      this.logger.log(`${client.data.memberId} disconnected`);
-    }
+  private async retrievAuth(req: any): Promise<AuthenticatedMember | null>{
+   try{
+    const parseUrl = url.parse(req.url, true)
+    const { token } = parseUrl.query;
+    console.log("token:", token);
+    return await this.authServer.verifyToken(token as string)
+   }catch( err ) {
+    return null;
+   }
   }
 
-  public sendNotification(
-    receiverId: Types.ObjectId,
-    notification: Notification,
-  ): void {
-    this.server.to(receiverId.toString()).emit('notification', notification);
+   public async handleConnection(client: WebSocket, req: any) { //Bu metod yangi client ulanganda avtomatik ishlaydi.
+     const authMember = await this.retrievAuth(req);
+      this.summaryClient++;
+     this.clientAuthMap.set(client, authMember)
+
+    const clientNick: string = authMember?.memberNick ?? "Guest"
+    this.logger.verbose(`Connection [${clientNick}] & total [${this.summaryClient}]`);
+
+    const infoMsg: InfoPayload = {
+      event: 'info',
+      totalClients: this.summaryClient,
+      memberData: authMember,
+      action: "Joined"
+    };
+
+    this.emitMessage(infoMsg); //bu ma’lumot barcha ochiq clientlarga yuboriladi.
+    client.send(JSON.stringify({ event: 'getMessages', list: this.messagesList }));
   }
 
-  private getAccessToken(client: Socket): string {
-    const authToken = client.handshake.auth?.token;
-    if (typeof authToken === 'string') return authToken.replace('Bearer ', '');
+   public handleDisconnect(client: WebSocket) { //Bu metod client serverdan uzilganda avtomatik ishlaydi.
+    const authMember = this.clientAuthMap.get(client);
+    this.summaryClient--;
+    this.clientAuthMap.delete(client)
 
-    const authorization = client.handshake.headers.authorization;
-    if (authorization?.startsWith('Bearer ')) return authorization.split(' ')[1];
+    const clientNick: string = authMember?.memberNick ?? "Guest"
+    this.logger.verbose(`Connection [${clientNick}] & total [${this.summaryClient}]`);
 
-    return '';
+    const infoMsg: InfoPayload = {
+      event: 'info',
+      totalClients: this.summaryClient,
+      memberData: authMember,
+      action: "left"
+    };
+    this.broadcastMessage(client, infoMsg);
+  }
+
+  @SubscribeMessage('message')
+  public async handleMessage(client: WebSocket, payload: string): Promise<void> { //Bu metod client yuborgan chat xabarini qabul qiladi.
+    const authMember =  this.clientAuthMap.get(client)
+    const newMessage: MessagePayload = { event: 'message', text: payload , memberData: authMember};
+
+    const clientNick: string = authMember?.memberNick ?? "Guest"
+    this.logger.verbose(`NEW MESSAGE [${clientNick}]: ${payload}`);
+
+    this.messagesList.push(newMessage)
+    this.emitMessage(newMessage);
+    if(this.messagesList.length > 5) this.messagesList.splice(0, this.messagesList.length -5)
+  }
+
+  private broadcastMessage(sender: WebSocket, message: InfoPayload | MessagePayload) { // broadcastMessage() orqali qolgan clientlarga yangilangan son yuboriladi.
+    this.server.clients.forEach((client) => {
+      if (client !== sender && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(message));
+      }
+    });
+  }
+
+  private emitMessage(message: InfoPayload | MessagePayload) { //  ulanishda
+    this.server.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(message));
+      }
+    });
   }
 }
+
+
+/**
+ MESSAGE TARGET:
+
+ (1): client (only client) - faqat oziga korinishi xabar.
+ (2): Broadcast (except client) client dan tashqari bolgan
+ (3): Emit (all clients) hammaga
+**/

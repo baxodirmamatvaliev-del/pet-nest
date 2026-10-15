@@ -1,3 +1,4 @@
+import { WsAdapter } from '@nestjs/platform-ws';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
@@ -28,6 +29,8 @@ async function bootstrap() {
 	expressApp.disable('x-powered-by');
 	app.enableShutdownHooks();
 
+	// nestar kabi oddiy WebSocket ulanishlari va eventlarini WsAdapter orqali boshqaramiz.
+	app.useWebSocketAdapter(new WsAdapter(app));
 	await app.listen(Number(process.env.PORT_API ?? 3002));
 }
 void bootstrap();
